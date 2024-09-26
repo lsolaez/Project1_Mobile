@@ -3,10 +3,12 @@ import 'screens/get_started.dart';
 import 'screens/home.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -14,7 +16,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const GetStartedScreen(),
-        '/home': (context) => const HomeScreen(),  // Pantalla Home definida
+        '/home': (context) => HomeScreen(),  // Pantalla Home definida
       },
     );
   }
