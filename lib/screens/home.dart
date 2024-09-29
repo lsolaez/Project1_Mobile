@@ -1,12 +1,114 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:project1/Controllers/DietController.dart';
+import 'package:project1/screens/diet_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  // ignore: library_private_types_in_public_api
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _screens = [
+    HomeContent(),
+    const DietScreen(), // Pantalla de Dieta
+    const Text('Settings Screen'),
+  ];
+
+  final List<String> _titles = [
+    'Healthy Recipes', // Título para la pantalla de inicio
+    'Diet Tracker',    // Título para la pantalla de dieta
+    'Settings',        // Título para la pantalla de configuración
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_titles[_selectedIndex]), // Cambiar el título dinámicamente
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFFA7268), // Color degradado superior
+                Color(0xFFF3ECEF), // Color degradado inferior
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+      ),
+      body: _screens[_selectedIndex], // Cargar la pantalla seleccionada
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1D1B20), // Color de fondo de la barra (negro/gris oscuro)
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              spreadRadius: 5,
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.grey,
+          showUnselectedLabels: true,
+          selectedLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(color: Colors.grey),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home, size: 30),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.pie_chart, size: 30),
+              label: 'Diet',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings, size: 30),
+              label: 'Settings',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HomeContent extends StatelessWidget {
+  final DietController dietController = Get.put(DietController());
   final List<Recipe> recipes = [
     Recipe(
       title: 'Avocado Toast',
       image: 'assets/imagenes/avocado_toast.jpg',
       ingredients: 'Avocado, Whole-grain bread, Olive oil, Salt',
-      preparation: 'Toast the bread, mash the avocado, add olive oil and salt.',
+      preparation:
+          'Toast the bread, mash the avocado, add olive oil and salt.',
       calories: 250,
       protein: 6,
       fat: 12,
@@ -16,7 +118,8 @@ class HomeScreen extends StatelessWidget {
       title: 'Quinoa Salad',
       image: 'assets/imagenes/quinoa_salad.jpg',
       ingredients: 'Quinoa, Cucumber, Tomato, Olive oil, Lemon juice',
-      preparation: 'Cook quinoa, chop vegetables, mix everything with olive oil and lemon juice.',
+      preparation:
+          'Cook quinoa, chop vegetables, mix everything with olive oil and lemon juice.',
       calories: 320,
       protein: 10,
       fat: 14,
@@ -26,7 +129,8 @@ class HomeScreen extends StatelessWidget {
       title: 'Smoothie Bowl',
       image: 'assets/imagenes/smoothie_bowl.jpg',
       ingredients: 'Banana, Berries, Greek yogurt, Granola, Honey',
-      preparation: 'Blend banana and berries, top with yogurt, granola, and honey.',
+      preparation:
+          'Blend banana and berries, top with yogurt, granola, and honey.',
       calories: 350,
       protein: 8,
       fat: 9,
@@ -56,7 +160,8 @@ class HomeScreen extends StatelessWidget {
       title: 'Overnight Oats',
       image: 'assets/imagenes/Overnight-Oats.jpg',
       ingredients: 'Oats, Almond milk, Chia seeds, Berries, Honey',
-      preparation: 'Mix oats, milk, chia seeds, refrigerate overnight, top with berries and honey.',
+      preparation:
+          'Mix oats, milk, chia seeds, refrigerate overnight, top with berries and honey.',
       calories: 280,
       protein: 8,
       fat: 5,
@@ -64,57 +169,38 @@ class HomeScreen extends StatelessWidget {
     ),
   ];
 
-  HomeScreen({super.key});
+  HomeContent({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Healthy Recipes'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFFFA7268), // Color degradado superior
-                Color(0xFFF3ECEF), // Color degradado inferior
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFFFA7268), // Color degradado superior
+            Color(0xFFF3ECEF), // Color degradado inferior
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFFA7268), // Color degradado superior
-              Color(0xFFF3ECEF), // Color degradado inferior
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // 2 columnas
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.5, // Ajustar la proporción para hacer las cartas más grandes
-              ),
-              itemCount: recipes.length,
-              itemBuilder: (context, index) {
-                return RecipeCard(recipe: recipes[index]);
-              },
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.5,
             ),
+            itemCount: recipes.length,
+            itemBuilder: (context, index) {
+              return RecipeCard(
+                  recipe: recipes[index], dietController: dietController);
+            },
           ),
         ),
       ),
@@ -146,8 +232,9 @@ class Recipe {
 
 class RecipeCard extends StatelessWidget {
   final Recipe recipe;
+  final DietController dietController;
 
-  const RecipeCard({super.key, required this.recipe});
+  const RecipeCard({super.key, required this.recipe, required this.dietController});
 
   @override
   Widget build(BuildContext context) {
@@ -159,9 +246,9 @@ class RecipeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Expanded para hacer que la imagen ocupe más espacio
+          // Reducimos el flex para que la imagen no ocupe tanto espacio
           Expanded(
-            flex: 2,
+            flex: 2, // Reducir el flex de la imagen
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
               child: Image.asset(
@@ -171,9 +258,9 @@ class RecipeCard extends StatelessWidget {
               ),
             ),
           ),
-          // Expanded para el contenido de texto
+          // Aumentamos el flex para el contenido y lo hacemos scrolleable
           Expanded(
-            flex: 2,
+            flex: 3, // Aumentar el flex para el contenido
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: SingleChildScrollView(
@@ -183,7 +270,7 @@ class RecipeCard extends StatelessWidget {
                     Text(
                       recipe.title,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 14, // Tamaño de texto ajustado
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -191,22 +278,14 @@ class RecipeCard extends StatelessWidget {
                     Text(
                       'Calories: ${recipe.calories} kcal',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 10, // Tamaño de texto reducido
                         color: Colors.grey[600],
                       ),
                     ),
                     Text(
                       'Protein: ${recipe.protein}g, Fat: ${recipe.fat}g, Carbs: ${recipe.carbs}g',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Ingredients: ${recipe.ingredients}',
-                      style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 10, // Tamaño de texto reducido
                         color: Colors.grey[600],
                       ),
                     ),
@@ -214,8 +293,21 @@ class RecipeCard extends StatelessWidget {
                     Text(
                       'Preparation: ${recipe.preparation}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 10, // Tamaño de texto reducido
                         color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          dietController.addToChart(recipe.calories.toDouble(),
+                              recipe.protein.toDouble(), recipe.carbs.toDouble());
+                        },
+                        child: const Text(
+                          'Add to Chart',
+                          style: TextStyle(fontSize: 12), // Ajuste del tamaño del botón
+                        ),
                       ),
                     ),
                   ],

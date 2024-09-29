@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const GetStartedScreen(),
-        '/home': (context) => HomeScreen(),  // Pantalla Home definida
+        '/home': (context) => const HomeScreen(),  // Pantalla Home definida
       },
     );
   }
