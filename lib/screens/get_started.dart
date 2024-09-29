@@ -1,78 +1,139 @@
 import 'package:flutter/material.dart';
+import 'home.dart'; // Importar la nueva pantalla
 
-class GetStartedScreen extends StatelessWidget {
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: GetStartedScreen(),
+    );
+  }
+}
+
+class GetStartedScreen extends StatefulWidget {
   const GetStartedScreen({super.key});
+
+  @override
+  _GetStartedScreenState createState() => _GetStartedScreenState();
+}
+
+class _GetStartedScreenState extends State<GetStartedScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  bool _isButtonPressed = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFFA7268),  // Color degradado
-              Color(0xFFF3ECEF),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      body: Stack(
+        children: [
+          // Imagen de fondo que ocupa todo el espacio
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/imagenes/Welcome.jpg'), // Ruta de la imagen
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            // Imagen en la parte superior
-            /*Image.asset(
-              'assets/images/exercise.png',  // Asegúrate de tener esta imagen en tus assets
-              height: 200,
-            ),
-            */
-            // Texto principal
-            const Column(
-              children: [
-                Text(
-                  'Mi mejor ser',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+          // Contenido encima de la imagen
+          Positioned(
+            bottom: 30,
+            left: 40,
+            right: 40,
+            child: !_isButtonPressed
+                ? ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 255, 173, 173),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isButtonPressed = true;
+                      });
+                    },
+                    child: const Text(
+                      'Get Started',
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 255, 252, 252),
+                      ),
+                    ),
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Ingrese su nombre:',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _nameController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Nombre',
+                          hintStyle: const TextStyle(color: Colors.white70),
+                          filled: true,
+                          fillColor: const Color.fromARGB(135, 155, 155, 155),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                        ),
+                        onSubmitted: (value) {
+                          setState(() {
+                            // Puedes eliminar la variable _name si no la necesitas
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            String name = _nameController.text;
+                            // Navegar a la pantalla de inicio
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => HomeScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 255, 173, 173),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          child: const Text(
+                            'Aceptar',
+                            style: TextStyle(
+                              fontSize: 25,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 255, 252, 252),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'Cada hábito cuenta, cada día cuenta',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-            
-            // Botón de Get Started
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pushNamed(context, '/home');  // Navega a la pantalla "Home"
-              },
-              child: const Text(
-                'Get Started',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
