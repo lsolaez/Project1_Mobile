@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:project1/Controllers/DietController.dart';
+import 'package:project1/Controllers/dietCrontroller.dart';
 
 
 class ConsumptionDialog extends StatelessWidget {
   final DietController dietController;
 
-  ConsumptionDialog({required this.dietController});
+  ConsumptionDialog({super.key, required this.dietController});
 
   final TextEditingController caloriesController = TextEditingController();
   final TextEditingController proteinsController = TextEditingController();

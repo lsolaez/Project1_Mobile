@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:project1/Controllers/DietController.dart';
+import 'package:project1/Controllers/dietCrontroller.dart';
 import 'package:project1/main.dart';
 import 'package:project1/screens/diet_screen.dart';
-import 'package:project1/screens/home.dart';
+import 'package:project1/screens/recipes_.dart';
 
 void main() {
   testWidgets('Get Started button navigates to Home screen',
@@ -18,9 +17,11 @@ void main() {
 
     // Tap the Get Started button and trigger a frame.
     await tester.tap(find.text('Get Started'));
-    await tester
-        .pumpAndSettle(); // Esperar hasta que todas las animaciones se completen
+    await tester.pumpAndSettle(); // Esperar hasta que todas las animaciones se completen
 
+    expect(find.text('Ingrese su nombre:'), findsOneWidget);
+    await tester.tap(find.text('Aceptar'));
+    await tester.pumpAndSettle();
     // Verify that we have navigated to the Home screen.
     expect(find.text('Healthy Recipes'),
         findsOneWidget); // Ajusta este texto a lo que tengas en la pantalla Home
@@ -34,7 +35,7 @@ void main() {
     // Construir el widget de la pantalla DietScreen
     await tester.pumpWidget(
       const MaterialApp(
-        home: DietScreen(),
+        home: DietScreen(nombre: '',),
       ),
     );
 
@@ -74,7 +75,7 @@ testWidgets('Charts update with consumption changes', (WidgetTester tester) asyn
     // Construir el widget de la pantalla DietScreen
     await tester.pumpWidget(
       const MaterialApp(
-        home: DietScreen(),
+        home: DietScreen(nombre: '',),
       ),
     );
 

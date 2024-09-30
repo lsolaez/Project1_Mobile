@@ -30,7 +30,10 @@ environment:
 dependencies:
   fl_chart: ^0.40.6
   get: ^4.6.5
-
+  font_awesome_flutter: ^10.4.0
+  sqflite: ^2.0.0+3 
+  path: ^1.8.0
+  intl: ^0.17.0
   flutter:
     sdk: flutter
     

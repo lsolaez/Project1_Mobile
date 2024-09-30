@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:project1/Controllers/DietController.dart';
+import 'package:project1/Controllers/dietCrontroller.dart';
 import 'package:project1/main.dart';
 import 'package:project1/screens/diet_screen.dart';
-import 'package:project1/screens/home.dart';
+import 'package:project1/screens/recipes_.dart';
 
 void main() {
   // Inicializar las pruebas de integración
@@ -44,7 +44,7 @@ void main() {
     // Construir la pantalla DietScreen
     await tester.pumpWidget(
       const MaterialApp(
-        home: DietScreen(),
+        home: DietScreen(nombre: '', userName: '',),
       ),
     );
 
@@ -74,7 +74,7 @@ void main() {
     // Construir el widget de la pantalla DietScreen
     await tester.pumpWidget(
       const MaterialApp(
-        home: DietScreen(),
+        home: DietScreen(nombre: '', userName: '',),
       ),
     );
 
@@ -105,8 +105,8 @@ void main() {
 
     // Construir la pantalla HomeScreen
     await tester.pumpWidget(
-      const MaterialApp(
-        home: HomeScreen(),
+      MaterialApp(
+        home: RecipesContent(),
       ),
     );
 

@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:project1/Controllers/dietCrontroller.dart';
+import 'package:project1/Helpers/db_helper.dart';
 import 'screens/get_started.dart';
-import 'screens/home.dart';
 
-void main() {
+void main() async {
+  // Asegura que los bindings de Flutter estén inicializados
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Elimina la base de datos
+  await DBHelper.deleteDatabase();
+  Get.put(DietController());
+  // Corre la aplicación
   runApp(const MyApp());
 }
 
+//
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -16,9 +26,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const GetStartedScreen(),
-        '/home': (context) => const HomeScreen(),  // Pantalla Home definida
       },
     );
   }
 }
-

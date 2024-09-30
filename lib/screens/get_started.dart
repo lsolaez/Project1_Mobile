@@ -1,25 +1,12 @@
 import 'package:flutter/material.dart';
-import 'home.dart'; // Importar la nueva pantalla
+import 'diet_screen.dart'; // Importamos la pantalla DietScreen
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: GetStartedScreen(),
-    );
-  }
-}
 
 class GetStartedScreen extends StatefulWidget {
   const GetStartedScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _GetStartedScreenState createState() => _GetStartedScreenState();
 }
 
@@ -93,11 +80,6 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        onSubmitted: (value) {
-                          setState(() {
-                            // Puedes eliminar la variable _name si no la necesitas
-                          });
-                        },
                       ),
                       const SizedBox(height: 20),
                       SizedBox(
@@ -105,11 +87,12 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
                         child: ElevatedButton(
                           onPressed: () {
                             String name = _nameController.text;
-                            // Navegar a la pantalla de inicio
+                            // Navegar a la pantalla de dieta pasando el nombre
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => HomeScreen(),
+                                builder: (context) =>
+                                    DietScreen(userName: name, nombre: '',),
                               ),
                             );
                           },
