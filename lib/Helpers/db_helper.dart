@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart'; // Asegúrate de tener este import para usar DateFormat
+import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -7,8 +7,19 @@ class DBHelper {
     return openDatabase(
       join(await getDatabasesPath(), 'progress.db'),
       onCreate: (db, version) async {
+        // Crear la tabla para el progreso
         await db.execute('''
           CREATE TABLE IF NOT EXISTS progress (
+            date TEXT PRIMARY KEY,
+            calories REAL,
+            proteins REAL,
+            carbs REAL
+          )
+        ''');
+
+        // Crear la tabla para las metas
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS goals (
             date TEXT PRIMARY KEY,
             calories REAL,
             proteins REAL,
@@ -21,14 +32,47 @@ class DBHelper {
   }
 
   static String formatDate(DateTime date) {
-    // Formateamos la fecha sin milisegundos ni zonas horarias
     return DateFormat('yyyy-MM-dd').format(date);
   }
 
-  // Método para insertar o actualizar el progreso de una fecha específica
+  // Método para guardar o actualizar las metas para una fecha específica
+  static Future<void> saveGoalsForDate(DateTime date, double calories, double proteins, double carbs) async {
+    final db = await database;
+    String formattedDate = formatDate(date);
+
+    await db.insert(
+      'goals',
+      {
+        'date': formattedDate,
+        'calories': calories,
+        'proteins': proteins,
+        'carbs': carbs,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Método para obtener las metas de una fecha específica
+  static Future<Map<String, dynamic>?> getGoalsForDate(DateTime date) async {
+    final db = await database;
+    String formattedDate = formatDate(date);
+
+    List<Map<String, dynamic>> result = await db.query(
+      'goals',
+      where: 'date = ?',
+      whereArgs: [formattedDate],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
+  // Método para guardar o actualizar el progreso de una fecha específica
   static Future<void> updateProgressForDate(DateTime date, double calories, double proteins, double carbs) async {
     final db = await database;
-
     String formattedDate = formatDate(date);
 
     await db.insert(
@@ -39,15 +83,13 @@ class DBHelper {
         'proteins': proteins,
         'carbs': carbs,
       },
-      conflictAlgorithm: ConflictAlgorithm.replace, // Reemplaza si ya existe
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
-
   }
 
   // Método para obtener el progreso de una fecha específica
   static Future<Map<String, dynamic>?> getProgressForDate(DateTime date) async {
     final db = await database;
-
     String formattedDate = formatDate(date);
 
     List<Map<String, dynamic>> result = await db.query(

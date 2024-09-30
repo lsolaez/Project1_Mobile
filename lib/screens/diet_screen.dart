@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:project1/Controllers/dietController.dart';
 import 'package:project1/widgets/ConsumptionDialog.dart';
+import 'package:project1/widgets/GoalSettingDialog.dart';
 import 'recipes_.dart';
 
 class DietScreen extends StatefulWidget {
@@ -11,7 +12,6 @@ class DietScreen extends StatefulWidget {
   const DietScreen({super.key, required this.userName, required String nombre});
 
   @override
-  // ignore: library_private_types_in_public_api
   _DietScreenState createState() => _DietScreenState();
 }
 
@@ -30,7 +30,6 @@ class _DietScreenState extends State<DietScreen> {
 
   // Aquí se pasa el `selectedDate` a las pantallas correspondientes
   List<Widget> _screens() => [
-        // Pantalla de progreso (reemplaza aquí por el widget real)
         buildProgressScreen(),
         RecipesContent(selectedDate: selectedDate), // Pantalla de recetas
         const Text('Human Metrics Screen'), // Pantalla de métricas
@@ -39,66 +38,76 @@ class _DietScreenState extends State<DietScreen> {
       ];
 
   // Método para mostrar los días de forma horizontal y scroleable
+  Widget buildDateSelector() {
+    return SizedBox(
+      height: 80, // Altura de los cuadrados con los días
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal, // Desplazamiento horizontal
+        reverse: true, // Mostrar los días de derecha a izquierda
+        itemCount: 30, // Mostrar 30 días como ejemplo
+        itemBuilder: (BuildContext context, int index) {
+          DateTime date = DateTime.now()
+              .subtract(Duration(days: index)); // Restar días desde hoy
 
-Widget buildDateSelector() {
-  return SizedBox(
-    height: 80, // Altura de los cuadrados con los días
-    child: ListView.builder(
-      scrollDirection: Axis.horizontal, // Desplazamiento horizontal
-      reverse: true, // Mostrar los días de derecha a izquierda
-      itemCount: 30, // Mostrar 30 días como ejemplo
-      itemBuilder: (BuildContext context, int index) {
-        DateTime date = DateTime.now().subtract(Duration(days: index)); // Restar días desde hoy
-        
-        // Comparar solo el año, mes y día
-        bool isSelected = date.year == selectedDate.year &&
-                          date.month == selectedDate.month &&
-                          date.day == selectedDate.day;
+          bool isSelected = date.year == selectedDate.year &&
+              date.month == selectedDate.month &&
+              date.day == selectedDate.day;
 
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              selectedDate = date; // Actualizar la fecha seleccionada
-              dietController.loadProgressForDate(selectedDate); // Cargar datos para la nueva fecha
-            });
-          },
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            width: 60, // Ancho del cuadrado del día
-            decoration: BoxDecoration(
-              color: isSelected ? const Color.fromARGB(255, 255, 173, 173) : Colors.white, // Cambiar color si está seleccionado
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isSelected ? const Color.fromARGB(255, 255, 173, 173) : Colors.grey, // Bordes del contenedor
-                width: 2,
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                selectedDate = date; // Actualizar la fecha seleccionada
+                dietController.loadProgressForDate(
+                    selectedDate); // Cargar datos para la nueva fecha
+              });
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              width: 60, // Ancho del cuadrado del día
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color.fromARGB(255, 255, 173, 173)
+                    : Colors.white, // Cambiar color si está seleccionado
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color.fromARGB(255, 255, 173, 173)
+                      : Colors.grey, // Bordes del contenedor
+                  width: 2,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    DateFormat('d').format(date), // Mostrar el día
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : Colors
+                              .black, // Cambiar el color del texto si está seleccionado
+                    ),
+                  ),
+                  Text(
+                    DateFormat('MMM').format(date), // Mostrar el mes abreviado
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected
+                          ? Colors.white
+                          : Colors
+                              .grey, // Cambiar el color del texto si está seleccionado
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  DateFormat('d').format(date), // Mostrar el día
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : Colors.black, // Cambiar el color del texto si está seleccionado
-                  ),
-                ),
-                Text(
-                  DateFormat('MMM').format(date), // Mostrar el mes abreviado
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isSelected ? Colors.white : Colors.grey, // Cambiar el color del texto si está seleccionado
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    ),
-  );
-}
+          );
+        },
+      ),
+    );
+  }
 
   // Pantalla de progreso
   Widget buildProgressScreen() {
@@ -119,12 +128,15 @@ Widget buildDateSelector() {
             const SizedBox(height: 20),
             buildDateSelector(), // Aquí agregamos la selección visual de fechas
             const SizedBox(height: 20),
+
+            // Corregimos aquí para usar el valor de RxDouble
             buildNutritionCard('Calories', dietController.totalCalories, dietController.maxCalories, Colors.orange),
             const SizedBox(height: 20),
             buildNutritionCard('Proteins', dietController.totalProteins, dietController.maxProteins, Colors.blue),
             const SizedBox(height: 20),
             buildNutritionCard('Carbs', dietController.totalCarbs, dietController.maxCarbs, Colors.green),
             const SizedBox(height: 20),
+
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
@@ -135,13 +147,15 @@ Widget buildDateSelector() {
                     builder: (BuildContext context) {
                       return ConsumptionDialog(
                         dietController: dietController,
-                        selectedDate: selectedDate, // Pasar la fecha seleccionada
+                        selectedDate:
+                            selectedDate, // Pasar la fecha seleccionada
                       );
                     },
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   backgroundColor: const Color.fromARGB(255, 255, 173, 173),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
@@ -150,6 +164,40 @@ Widget buildDateSelector() {
                 ),
                 child: const Text(
                   'Update Consumption',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Mostrar el diálogo de actualización de consumo en lugar de pasar valores predeterminados
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return GoalSettingDialog(
+                        dietController: dietController,
+                        selectedDate:
+                            selectedDate, // Pasar la fecha seleccionada
+                      );
+                    },
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  backgroundColor: const Color.fromARGB(255, 255, 173, 173),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  elevation: 5,
+                ),
+                child: const Text(
+                  'Update Goals',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -199,10 +247,11 @@ Widget buildDateSelector() {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         backgroundColor: const Color(0xFF1D1B20),
-        selectedItemColor: Colors.white,
+        selectedItemColor: const Color.fromARGB(255, 255, 173, 173),
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        selectedLabelStyle:
+            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         unselectedLabelStyle: const TextStyle(color: Colors.grey),
         items: const [
           BottomNavigationBarItem(
@@ -230,8 +279,8 @@ Widget buildDateSelector() {
     );
   }
 
-  // Crear la tarjeta de nutrición
-  Widget buildNutritionCard(String title, RxDouble currentValue, double maxValue, Color color) {
+  Widget buildNutritionCard(
+      String title, RxDouble currentValue, RxDouble maxValue, Color color) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -248,7 +297,8 @@ Widget buildDateSelector() {
                   height: 120,
                   width: 120,
                   child: CircularProgressIndicator(
-                    value: currentValue.value / maxValue,
+                    value: currentValue.value /
+                        maxValue.value, // Usamos .value para el RxDouble
                     strokeWidth: 12,
                     backgroundColor: Colors.grey[300],
                     valueColor: AlwaysStoppedAnimation(color),
@@ -260,7 +310,8 @@ Widget buildDateSelector() {
             Obx(() {
               return Text(
                 '$title: ${currentValue.value.toStringAsFixed(1)} / $maxValue',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               );
             }),
           ],
