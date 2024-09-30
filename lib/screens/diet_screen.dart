@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart'; // Necesario para formatear la fecha
+import 'package:intl/intl.dart';
 import 'package:project1/Controllers/dietController.dart';
 import 'package:project1/widgets/ConsumptionDialog.dart';
-import 'recipes_.dart'; // Para la navegación a la pantalla de recetas
+import 'recipes_.dart';
 
 class DietScreen extends StatefulWidget {
   final String userName;
@@ -12,6 +11,7 @@ class DietScreen extends StatefulWidget {
   const DietScreen({super.key, required this.userName, required String nombre});
 
   @override
+  // ignore: library_private_types_in_public_api
   _DietScreenState createState() => _DietScreenState();
 }
 
@@ -28,106 +28,80 @@ class _DietScreenState extends State<DietScreen> {
     'Settings',
   ];
 
-  // Método para manejar la selección de la fecha
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime(2020), // Limitar la fecha mínima
-      lastDate: DateTime.now(), // Limitar a la fecha actual
-    );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked; // Actualizar la fecha seleccionada
-        dietController.loadProgressForDate(selectedDate); // Cargar los datos de esa fecha
-      });
-    }
-  }
+  // Aquí se pasa el `selectedDate` a las pantallas correspondientes
+  List<Widget> _screens() => [
+        // Pantalla de progreso (reemplaza aquí por el widget real)
+        buildProgressScreen(),
+        RecipesContent(selectedDate: selectedDate), // Pantalla de recetas
+        const Text('Human Metrics Screen'), // Pantalla de métricas
+        const Text('Hydration Screen'), // Pantalla de hidratación
+        const Text('Settings Screen'), // Pantalla de ajustes
+      ];
 
-  // Método para manejar el cambio de pantallas en el BottomNavigationBar
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+  // Método para mostrar los días de forma horizontal y scroleable
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_titles[_selectedIndex]), // Cambiar el título dinámicamente
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFFFA7268), // Color degradado superior
-                Color(0xFFF3ECEF), // Color degradado inferior
+Widget buildDateSelector() {
+  return SizedBox(
+    height: 80, // Altura de los cuadrados con los días
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal, // Desplazamiento horizontal
+      reverse: true, // Mostrar los días de derecha a izquierda
+      itemCount: 30, // Mostrar 30 días como ejemplo
+      itemBuilder: (BuildContext context, int index) {
+        DateTime date = DateTime.now().subtract(Duration(days: index)); // Restar días desde hoy
+        
+        // Comparar solo el año, mes y día
+        bool isSelected = date.year == selectedDate.year &&
+                          date.month == selectedDate.month &&
+                          date.day == selectedDate.day;
+
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              selectedDate = date; // Actualizar la fecha seleccionada
+              dietController.loadProgressForDate(selectedDate); // Cargar datos para la nueva fecha
+            });
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            width: 60, // Ancho del cuadrado del día
+            decoration: BoxDecoration(
+              color: isSelected ? const Color.fromARGB(255, 255, 173, 173) : Colors.white, // Cambiar color si está seleccionado
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? const Color.fromARGB(255, 255, 173, 173) : Colors.grey, // Bordes del contenedor
+                width: 2,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  DateFormat('d').format(date), // Mostrar el día
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : Colors.black, // Cambiar el color del texto si está seleccionado
+                  ),
+                ),
+                Text(
+                  DateFormat('MMM').format(date), // Mostrar el mes abreviado
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected ? Colors.white : Colors.grey, // Cambiar el color del texto si está seleccionado
+                  ),
+                ),
               ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
             ),
           ),
-        ),
-      ),
-      body: _screens(), // Aquí se llamará el método que muestra la pantalla correcta
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        backgroundColor: const Color(0xFF1D1B20),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: const TextStyle(color: Colors.grey),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(FontAwesomeIcons.chartPie, size: 30), // Gráfico circular
-            label: 'Progress',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(FontAwesomeIcons.utensils, size: 30), // Cambiar a utensilios
-            label: 'Recipes',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(FontAwesomeIcons.person), // Ícono de humano
-            label: 'Body', // Etiqueta
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(FontAwesomeIcons.droplet), // Ícono de gota de agua
-            label: 'Hydration', // Etiqueta
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings, size: 30),
-            label: 'Settings',
-          ),
-        ],
-      ),
-    );
-  }
+        );
+      },
+    ),
+  );
+}
 
-  // Método para decidir qué pantalla mostrar
-  Widget _screens() {
-    switch (_selectedIndex) {
-      case 0:
-        return buildDietContent(); // Pantalla de progreso
-      case 1:
-        return RecipesContent(selectedDate: selectedDate); // Pantalla de recetas con la fecha seleccionada
-      case 2:
-        return const Center(child: Text('Human Metrics Screen')); // Pantalla de métricas corporales
-      case 3:
-        return const Center(child: Text('Hydration Screen')); // Pantalla de hidratación
-      case 4:
-        return const Center(child: Text('Settings Screen')); // Pantalla de configuración
-      default:
-        return buildDietContent(); // Por defecto, mostrar el progreso
-    }
-  }
-
-  // El contenido principal de la pantalla Diet
-  Widget buildDietContent() {
+  // Pantalla de progreso
+  Widget buildProgressScreen() {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -135,7 +109,7 @@ class _DietScreenState extends State<DietScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Hi ${widget.userName}! Here is your progress for ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
+              'Hi ${widget.userName}! Here is your progress',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 20,
@@ -143,25 +117,7 @@ class _DietScreenState extends State<DietScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _selectDate(context), // Seleccionar la fecha
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                backgroundColor: const Color.fromARGB(255, 255, 173, 173),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                elevation: 5,
-              ),
-              child: const Text(
-                'Select Date',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+            buildDateSelector(), // Aquí agregamos la selección visual de fechas
             const SizedBox(height: 20),
             buildNutritionCard('Calories', dietController.totalCalories, dietController.maxCalories, Colors.orange),
             const SizedBox(height: 20),
@@ -208,7 +164,73 @@ class _DietScreenState extends State<DietScreen> {
     );
   }
 
-  // Crear una tarjeta para mostrar el progreso nutricional
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_titles[_selectedIndex]), // Cambiar el título dinámicamente
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFFA7268), // Color degradado superior
+                Color(0xFFF3ECEF), // Color degradado inferior
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+      ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens(),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        backgroundColor: const Color(0xFF1D1B20),
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+        selectedLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(color: Colors.grey),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pie_chart, size: 30), // Gráfico circular
+            label: 'Progress',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant, size: 30), // Icono de recetas
+            label: 'Recipes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person, size: 30), // Icono de humano
+            label: 'Body',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.water_drop, size: 30), // Icono de agua
+            label: 'Hydration',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings, size: 30),
+            label: 'Settings',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Crear la tarjeta de nutrición
   Widget buildNutritionCard(String title, RxDouble currentValue, double maxValue, Color color) {
     return Card(
       elevation: 4,
