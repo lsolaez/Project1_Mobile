@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:project1/Controllers/dietCrontroller.dart';
+import 'package:project1/Controllers/dietController.dart';
 import 'package:project1/main.dart';
 import 'package:project1/screens/diet_screen.dart';
 import 'package:project1/screens/recipes_.dart';

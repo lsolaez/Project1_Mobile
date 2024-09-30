@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:project1/Controllers/dietCrontroller.dart';
+import 'package:project1/Controllers/dietController.dart';
 
 class RecipesContent extends StatelessWidget {
   final DateTime selectedDate;

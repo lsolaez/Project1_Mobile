@@ -1,64 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:project1/Controllers/dietCrontroller.dart';
+import 'package:project1/Controllers/dietController.dart';
 
 
 class ConsumptionDialog extends StatelessWidget {
   final DietController dietController;
+  final DateTime selectedDate;
 
-  ConsumptionDialog({super.key, required this.dietController});
-
-  final TextEditingController caloriesController = TextEditingController();
-  final TextEditingController proteinsController = TextEditingController();
-  final TextEditingController carbsController = TextEditingController();
+  const ConsumptionDialog({
+    Key? key,
+    required this.dietController,
+    required this.selectedDate,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final TextEditingController _caloriesController = TextEditingController();
+    final TextEditingController _proteinsController = TextEditingController();
+    final TextEditingController _carbsController = TextEditingController();
+
     return AlertDialog(
-      title: const Text('Enter your consumption'),
+      title: const Text('Update Consumption'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: caloriesController,
+            controller: _caloriesController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Calories',
-            ),
+            decoration: const InputDecoration(labelText: 'Calories'),
           ),
           TextField(
-            controller: proteinsController,
+            controller: _proteinsController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Proteins',
-            ),
+            decoration: const InputDecoration(labelText: 'Proteins (g)'),
           ),
           TextField(
-            controller: carbsController,
+            controller: _carbsController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Carbs',
-            ),
+            decoration: const InputDecoration(labelText: 'Carbs (g)'),
           ),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () {
-            // Cerrar el dialog sin guardar
             Navigator.of(context).pop();
           },
           child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: () {
-            // Convertimos los valores ingresados y actualizamos el controlador
-            final double calories = double.tryParse(caloriesController.text) ?? 0;
-            final double proteins = double.tryParse(proteinsController.text) ?? 0;
-            final double carbs = double.tryParse(carbsController.text) ?? 0;
+            final double calories = double.tryParse(_caloriesController.text) ?? 0;
+            final double proteins = double.tryParse(_proteinsController.text) ?? 0;
+            final double carbs = double.tryParse(_carbsController.text) ?? 0;
 
-            dietController.addToChart(calories, proteins, carbs);
+            // Llamar al controlador para agregar los valores a la gráfica
+            dietController.addToChart(calories, proteins, carbs, selectedDate);
 
-            // Cerrar el dialog
             Navigator.of(context).pop();
           },
           child: const Text('Update'),
