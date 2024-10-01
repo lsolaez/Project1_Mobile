@@ -72,7 +72,7 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
                         controller: _nameController,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
-                          hintText: 'Nombre',
+                          hintText: 'Name',
                           hintStyle: const TextStyle(color: Colors.white70),
                           filled: true,
                           fillColor: const Color.fromARGB(135, 155, 155, 155),

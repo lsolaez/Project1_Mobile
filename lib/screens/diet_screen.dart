@@ -34,7 +34,9 @@ class _DietScreenState extends State<DietScreen> {
         buildProgressScreen(),
         RecipesContent(selectedDate: selectedDate), // Pantalla de recetas
         const Text('Human Metrics Screen'), // Pantalla de métricas
-        HydrationScreen(selectedDate: selectedDate,), // Pantalla de hidratación
+        HydrationScreen(
+          selectedDate: selectedDate,
+        ), // Pantalla de hidratación
         const Text('Settings Screen'), // Pantalla de ajustes
       ];
 
@@ -131,82 +133,87 @@ class _DietScreenState extends State<DietScreen> {
             const SizedBox(height: 20),
 
             // Corregimos aquí para usar el valor de RxDouble
-            buildNutritionCard('Calories', dietController.totalCalories, dietController.maxCalories, Colors.orange),
+            buildNutritionCard('Calories', dietController.totalCalories,
+                dietController.maxCalories, Colors.orange),
             const SizedBox(height: 20),
-            buildNutritionCard('Proteins', dietController.totalProteins, dietController.maxProteins, Colors.blue),
+            buildNutritionCard('Proteins', dietController.totalProteins,
+                dietController.maxProteins, Colors.blue),
             const SizedBox(height: 20),
-            buildNutritionCard('Carbs', dietController.totalCarbs, dietController.maxCarbs, Colors.green),
+            buildNutritionCard('Carbs', dietController.totalCarbs,
+                dietController.maxCarbs, Colors.green),
             const SizedBox(height: 20),
 
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Mostrar el diálogo de actualización de consumo en lugar de pasar valores predeterminados
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return ConsumptionDialog(
-                        dietController: dietController,
-                        selectedDate:
-                            selectedDate, // Pasar la fecha seleccionada
-                      );
-                    },
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  backgroundColor: const Color.fromARGB(255, 255, 173, 173),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
+            Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.end, // Alinear los botones a la derecha
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    // Mostrar el diálogo de actualización de consumo en lugar de pasar valores predeterminados
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return ConsumptionDialog(
+                          dietController: dietController,
+                          selectedDate:
+                              selectedDate, // Pasar la fecha seleccionada
+                        );
+                      },
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    backgroundColor: const Color.fromARGB(255, 255, 173, 173),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    elevation: 5,
                   ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  'Update Consumption',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Mostrar el diálogo de actualización de consumo en lugar de pasar valores predeterminados
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return GoalSettingDialog(
-                        dietController: dietController,
-                        selectedDate:
-                            selectedDate, // Pasar la fecha seleccionada
-                      );
-                    },
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  backgroundColor: const Color.fromARGB(255, 255, 173, 173),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  'Update Goals',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  child: const Text(
+                    'Update Consumption',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-            ),
+                const SizedBox(height: 10), // Espacio entre los botones
+                ElevatedButton(
+                  onPressed: () {
+                    // Mostrar el diálogo de actualización de metas en lugar de pasar valores predeterminados
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return GoalSettingDialog(
+                          dietController: dietController,
+                          selectedDate:
+                              selectedDate, // Pasar la fecha seleccionada
+                        );
+                      },
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    backgroundColor: const Color.fromARGB(255, 255, 173, 173),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    elevation: 5,
+                  ),
+                  child: const Text(
+                    'Update Goals',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            )
           ],
         ),
       ),
@@ -264,7 +271,7 @@ class _DietScreenState extends State<DietScreen> {
             label: 'Recipes',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person, size: 30), // Icono de humano
+            icon: Icon(Icons.accessibility, size: 30), // Icono de humano
             label: 'Body',
           ),
           BottomNavigationBarItem(
