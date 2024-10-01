@@ -26,8 +26,42 @@ class DBHelper {
             carbs REAL
           )
         ''');
+
+        // Crear la tabla para la ingesta de agua
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS water (
+            date TEXT PRIMARY KEY,
+            water REAL
+          )
+        ''');
+
+        // Crear la tabla para el tamaño del vaso
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS glassSize (
+            date TEXT PRIMARY KEY,
+            glassSize REAL
+          )
+        ''');
       },
-      version: 1,
+      version: 3, // Cambiar versión a 3 para asegurarse de que se cree la tabla "glassSize"
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS water (
+              date TEXT PRIMARY KEY,
+              water REAL
+            )
+          ''');
+        }
+        if (oldVersion < 3) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS glassSize (
+              date TEXT PRIMARY KEY,
+              glassSize REAL
+            )
+          ''');
+        }
+      },
     );
   }
 
@@ -36,7 +70,8 @@ class DBHelper {
   }
 
   // Método para guardar o actualizar las metas para una fecha específica
-  static Future<void> saveGoalsForDate(DateTime date, double calories, double proteins, double carbs) async {
+  static Future<void> saveGoalsForDate(
+      DateTime date, double calories, double proteins, double carbs) async {
     final db = await database;
     String formattedDate = formatDate(date);
 
@@ -71,7 +106,8 @@ class DBHelper {
   }
 
   // Método para guardar o actualizar el progreso de una fecha específica
-  static Future<void> updateProgressForDate(DateTime date, double calories, double proteins, double carbs) async {
+  static Future<void> updateProgressForDate(
+      DateTime date, double calories, double proteins, double carbs) async {
     final db = await database;
     String formattedDate = formatDate(date);
 
@@ -94,6 +130,73 @@ class DBHelper {
 
     List<Map<String, dynamic>> result = await db.query(
       'progress',
+      where: 'date = ?',
+      whereArgs: [formattedDate],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
+  // Método para guardar o actualizar la ingesta de agua para una fecha específica
+  static Future<void> updateWaterForDate(
+      DateTime date, double waterAmount) async {
+    final db = await database;
+    String formattedDate = formatDate(date);
+
+    await db.insert(
+      'water',
+      {
+        'date': formattedDate,
+        'water': waterAmount,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace, // Reemplazar si ya existe
+    );
+  }
+
+  // Método para guardar o actualizar el tamaño del vaso para una fecha específica
+  static Future<void> saveGlassSizeForDate(DateTime date, double glassSize) async {
+    final db = await database;
+    String formattedDate = formatDate(date);
+
+    await db.insert(
+      'glassSize',
+      {
+        'date': formattedDate,
+        'glassSize': glassSize,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace, // Reemplazar si ya existe
+    );
+  }
+
+  // Método para obtener la ingesta de agua para una fecha específica
+  static Future<Map<String, dynamic>?> getWaterForDate(DateTime date) async {
+    final db = await database;
+    String formattedDate = formatDate(date);
+
+    List<Map<String, dynamic>> result = await db.query(
+      'water',
+      where: 'date = ?',
+      whereArgs: [formattedDate],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
+  // Método para obtener el tamaño del vaso para una fecha específica
+  static Future<Map<String, dynamic>?> getGlassSizeForDate(DateTime date) async {
+    final db = await database;
+    String formattedDate = formatDate(date);
+
+    List<Map<String, dynamic>> result = await db.query(
+      'glassSize',
       where: 'date = ?',
       whereArgs: [formattedDate],
     );

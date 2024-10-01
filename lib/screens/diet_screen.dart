@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:project1/Controllers/dietController.dart';
+import 'package:project1/screens/hydration_screen.dart';
 import 'package:project1/widgets/ConsumptionDialog.dart';
 import 'package:project1/widgets/GoalSettingDialog.dart';
 import 'recipes_.dart';
@@ -33,7 +34,7 @@ class _DietScreenState extends State<DietScreen> {
         buildProgressScreen(),
         RecipesContent(selectedDate: selectedDate), // Pantalla de recetas
         const Text('Human Metrics Screen'), // Pantalla de métricas
-        const Text('Hydration Screen'), // Pantalla de hidratación
+        HydrationScreen(selectedDate: selectedDate,), // Pantalla de hidratación
         const Text('Settings Screen'), // Pantalla de ajustes
       ];
 

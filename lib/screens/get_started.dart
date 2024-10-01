@@ -60,7 +60,7 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Ingrese su nombre:',
+                        'Insert your name:',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
