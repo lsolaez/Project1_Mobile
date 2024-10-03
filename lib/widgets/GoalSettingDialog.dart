@@ -5,33 +5,51 @@ class GoalSettingDialog extends StatelessWidget {
   final DietController dietController;
   final DateTime selectedDate;
 
-  GoalSettingDialog({required this.dietController, required this.selectedDate});
+  GoalSettingDialog({
+    Key? key,
+    required this.dietController,
+    required this.selectedDate,
+  }) : super(key: key);
 
   final TextEditingController _caloriesController = TextEditingController();
   final TextEditingController _proteinsController = TextEditingController();
   final TextEditingController _carbsController = TextEditingController();
+  final TextEditingController _fatController = TextEditingController(); // Controlador para grasa
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Set Daily Goals'),
+      title: const Text('Update Goals'),
       content: SingleChildScrollView(
         child: Column(
           children: [
             TextField(
               controller: _caloriesController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Calories Goal (kcal)'),
+              decoration: const InputDecoration(
+                labelText: 'Calories',
+              ),
             ),
             TextField(
               controller: _proteinsController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Proteins Goal (g)'),
+              decoration: const InputDecoration(
+                labelText: 'Proteins (g)',
+              ),
             ),
             TextField(
               controller: _carbsController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Carbs Goal (g)'),
+              decoration: const InputDecoration(
+                labelText: 'Carbs (g)',
+              ),
+            ),
+            TextField(
+              controller: _fatController, // Campo de entrada para la grasa
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Fat (g)',
+              ),
             ),
           ],
         ),
@@ -43,16 +61,17 @@ class GoalSettingDialog extends StatelessWidget {
           },
           child: const Text('Cancel'),
         ),
-        TextButton(
+        ElevatedButton(
           onPressed: () {
-            // Obtener los valores ingresados por el usuario
             double? calories = double.tryParse(_caloriesController.text);
             double? proteins = double.tryParse(_proteinsController.text);
             double? carbs = double.tryParse(_carbsController.text);
+            double? fat = double.tryParse(_fatController.text); // Parsear el valor de grasa
 
-            if (calories != null && proteins != null && carbs != null) {
+            if (calories != null && proteins != null && carbs != null && fat != null) {
               // Actualizar las metas en el controlador y pasar la fecha seleccionada
-              dietController.setGoals(calories, proteins, carbs, selectedDate);
+              dietController.setGoals(calories, proteins, carbs, fat, selectedDate); // Ahora pasando el parámetro de grasa también
+
               Navigator.of(context).pop(); // Cerrar el diálogo después de guardar
             } else {
               // Mostrar un mensaje de error si los valores no son válidos

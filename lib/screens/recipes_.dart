@@ -190,6 +190,7 @@ class RecipeCard extends StatelessWidget {
                             recipe.calories.toDouble(),
                             recipe.protein.toDouble(),
                             recipe.carbs.toDouble(),
+                            recipe.fat.toDouble(),
                             selectedDate, // Guardar datos para la fecha seleccionada
                           );
                         },

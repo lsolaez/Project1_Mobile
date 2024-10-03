@@ -4,11 +4,13 @@ import 'package:project1/Controllers/dietController.dart';
 class ConsumptionDialog extends StatefulWidget {
   final DietController dietController;
   final DateTime selectedDate;
+  final String title; // Añadir título para identificar el nutriente
 
   const ConsumptionDialog({
     Key? key,
     required this.dietController,
     required this.selectedDate,
+    required this.title, // Añadir este argumento
   }) : super(key: key);
 
   @override
@@ -16,82 +18,53 @@ class ConsumptionDialog extends StatefulWidget {
 }
 
 class _ConsumptionDialogState extends State<ConsumptionDialog> {
-  late TextEditingController _caloriesController;
-  late TextEditingController _proteinsController;
-  late TextEditingController _carbsController;
+  late TextEditingController _inputController;
 
   @override
   void initState() {
     super.initState();
-    // Inicializar los controladores de texto
-    _caloriesController = TextEditingController();
-    _proteinsController = TextEditingController();
-    _carbsController = TextEditingController();
+    _inputController = TextEditingController();
   }
 
   @override
   void dispose() {
-    // Asegurarse de liberar los controladores cuando el widget se elimine
-    _caloriesController.dispose();
-    _proteinsController.dispose();
-    _carbsController.dispose();
+    _inputController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Update Consumption'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Campo de texto para ingresar las calorías
-          TextField(
-            controller: _caloriesController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Calories (kcal)',
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Campo de texto para ingresar las proteínas
-          TextField(
-            controller: _proteinsController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Proteins (g)',
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Campo de texto para ingresar los carbohidratos
-          TextField(
-            controller: _carbsController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Carbs (g)',
-            ),
-          ),
-        ],
+      title: Text('Update ${widget.title}'), // Mostrar el nutriente que se actualiza
+      content: TextField(
+        controller: _inputController,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: '${widget.title} (g)',
+        ),
       ),
       actions: [
         TextButton(
           onPressed: () {
-            // Cerrar el diálogo sin guardar
             Navigator.of(context).pop();
           },
           child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: () {
-            // Obtener los valores ingresados y actualizar el controlador
-            final double calories = double.tryParse(_caloriesController.text) ?? 0.0;
-            final double proteins = double.tryParse(_proteinsController.text) ?? 0.0;
-            final double carbs = double.tryParse(_carbsController.text) ?? 0.0;
+            final double value = double.tryParse(_inputController.text) ?? 0.0;
 
-            // Pasar la fecha seleccionada como cuarto argumento
-            widget.dietController.addToChart(calories, proteins, carbs, widget.selectedDate);
+            // Actualizar el gráfico correspondiente
+            if (widget.title == 'Calories') {
+              widget.dietController.addToChart(value, 0, 0, 0, widget.selectedDate);
+            } else if (widget.title == 'Proteins') {
+              widget.dietController.addToChart(0, value, 0, 0, widget.selectedDate);
+            } else if (widget.title == 'Carbs') {
+              widget.dietController.addToChart(0, 0, value, 0, widget.selectedDate);
+            } else if (widget.title == 'Fats') {
+              widget.dietController.addToChart(0, 0, 0, value, widget.selectedDate);
+            }
 
-            // Cerrar el diálogo
             Navigator.of(context).pop();
           },
           child: const Text('Update'),

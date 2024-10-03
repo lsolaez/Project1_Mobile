@@ -7,23 +7,25 @@ class DBHelper {
     return openDatabase(
       join(await getDatabasesPath(), 'progress.db'),
       onCreate: (db, version) async {
-        // Crear la tabla para el progreso
+        // Crear la tabla para el progreso, ahora incluye grasas (fat)
         await db.execute('''
           CREATE TABLE IF NOT EXISTS progress (
             date TEXT PRIMARY KEY,
             calories REAL,
             proteins REAL,
-            carbs REAL
+            carbs REAL,
+            fat REAL
           )
         ''');
 
-        // Crear la tabla para las metas
+        // Crear la tabla para las metas, ahora incluye grasas (fat)
         await db.execute('''
           CREATE TABLE IF NOT EXISTS goals (
             date TEXT PRIMARY KEY,
             calories REAL,
             proteins REAL,
-            carbs REAL
+            carbs REAL,
+            fat REAL
           )
         ''');
 
@@ -43,7 +45,7 @@ class DBHelper {
           )
         ''');
       },
-      version: 3, // Cambiar versión a 3 para asegurarse de que se cree la tabla "glassSize"
+      version: 4, // Cambiar versión a 4 para incluir "fat"
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute('''
@@ -61,6 +63,11 @@ class DBHelper {
             )
           ''');
         }
+        if (oldVersion < 4) {
+          // Añadir columna fat a las tablas "progress" y "goals"
+          await db.execute('ALTER TABLE progress ADD COLUMN fat REAL');
+          await db.execute('ALTER TABLE goals ADD COLUMN fat REAL');
+        }
       },
     );
   }
@@ -69,9 +76,9 @@ class DBHelper {
     return DateFormat('yyyy-MM-dd').format(date);
   }
 
-  // Método para guardar o actualizar las metas para una fecha específica
+  // Método para guardar o actualizar las metas para una fecha específica, ahora incluye grasas (fat)
   static Future<void> saveGoalsForDate(
-      DateTime date, double calories, double proteins, double carbs) async {
+      DateTime date, double calories, double proteins, double carbs, double fat) async {
     final db = await database;
     String formattedDate = formatDate(date);
 
@@ -82,6 +89,7 @@ class DBHelper {
         'calories': calories,
         'proteins': proteins,
         'carbs': carbs,
+        'fat': fat,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -105,9 +113,9 @@ class DBHelper {
     }
   }
 
-  // Método para guardar o actualizar el progreso de una fecha específica
+  // Método para guardar o actualizar el progreso de una fecha específica, ahora incluye grasas (fat)
   static Future<void> updateProgressForDate(
-      DateTime date, double calories, double proteins, double carbs) async {
+      DateTime date, double calories, double proteins, double carbs, double fat) async {
     final db = await database;
     String formattedDate = formatDate(date);
 
@@ -118,6 +126,7 @@ class DBHelper {
         'calories': calories,
         'proteins': proteins,
         'carbs': carbs,
+        'fat': fat,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
