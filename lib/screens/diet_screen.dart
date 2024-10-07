@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:project1/Controllers/dietController.dart';
+import 'package:project1/Controllers/hydration_controller.dart';
 import 'package:project1/screens/hydration_screen.dart';
 import 'package:project1/widgets/ConsumptionDialog.dart';
 import 'package:project1/widgets/GoalSettingDialog.dart';
@@ -26,7 +27,6 @@ class _DietScreenState extends State<DietScreen> {
   final List<String> _titles = [
     'Progress',
     'Healthy Recipes',
-    'Human Metrics',
     'Settings',
   ];
 
@@ -44,14 +44,9 @@ class _DietScreenState extends State<DietScreen> {
 
   // Método para desplazar el ListView hacia la fecha seleccionada
   void scrollToSelectedDate() {
-    // El índice del día seleccionado (hoy está en el centro del rango de días)
     int selectedIndex = daysInPast; // El día de hoy es el índice 'daysInPast'
-
-    // Calcular la posición para desplazar el ScrollController
     double scrollPosition =
         (selectedIndex * 76.0) - MediaQuery.of(context).size.width / 2 + 30.0;
-
-    // Desplazar la lista de días
     _scrollController.animateTo(
       scrollPosition,
       duration: const Duration(milliseconds: 500),
@@ -63,26 +58,21 @@ class _DietScreenState extends State<DietScreen> {
   List<Widget> _screens() => [
         buildProgressScreen(),
         RecipesContent(selectedDate: selectedDate), // Pantalla de recetas
-        const Text('Human Metrics Screen'), // Pantalla de métricas
         const Text('Settings Screen'), // Pantalla de ajustes
       ];
 
   // Método para mostrar los días de forma horizontal y scroleable
   Widget buildDateSelector() {
     return SizedBox(
-      height: 80, // Altura de los cuadrados con los días
+      height: 80,
       child: ListView.builder(
-        controller:
-            _scrollController, // Asignar el controlador de desplazamiento
-        scrollDirection: Axis.horizontal, // Desplazamiento horizontal
-        reverse: false, // Mostrar los días de izquierda a derecha
-        itemCount: daysInPast +
-            daysInFuture +
-            1, // Total de días (pasados + futuros + hoy)
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        reverse: false,
+        itemCount: daysInPast + daysInFuture + 1, // Total de días
         itemBuilder: (BuildContext context, int index) {
           DateTime date = DateTime.now().subtract(Duration(
-              days: daysInPast -
-                  index)); // Mostrar días desde el pasado al futuro
+              days: daysInPast - index)); // Mostrar días desde el pasado
 
           bool isSelected = date.year == selectedDate.year &&
               date.month == selectedDate.month &&
@@ -92,8 +82,7 @@ class _DietScreenState extends State<DietScreen> {
             onTap: () {
               setState(() {
                 selectedDate = date; // Actualizar la fecha seleccionada
-                dietController.loadProgressForDate(
-                    selectedDate); // Cargar datos para la nueva fecha
+                dietController.loadProgressForDate(selectedDate);
               });
             },
             child: Container(
@@ -119,20 +108,14 @@ class _DietScreenState extends State<DietScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? Colors.white
-                          : Colors
-                              .black, // Cambiar el color del texto si está seleccionado
+                      color: isSelected ? Colors.white : Colors.black,
                     ),
                   ),
                   Text(
                     DateFormat('MMM').format(date), // Mostrar el mes abreviado
                     style: TextStyle(
                       fontSize: 12,
-                      color: isSelected
-                          ? Colors.white
-                          : Colors
-                              .grey, // Cambiar el color del texto si está seleccionado
+                      color: isSelected ? Colors.white : Colors.grey,
                     ),
                   ),
                 ],
@@ -146,6 +129,9 @@ class _DietScreenState extends State<DietScreen> {
 
   // Pantalla de progreso
   Widget buildProgressScreen() {
+    final HydrationController hydrationController =
+        Get.put(HydrationController());
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -161,7 +147,42 @@ class _DietScreenState extends State<DietScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            buildDateSelector(), // Aquí agregamos la selección visual de fechas
+
+            // Barra de progreso fuera del AppBar
+            Obx(() {
+              double calorieProgress = dietController.totalCalories.value /
+                  dietController.maxCalories.value;
+              double proteinProgress = dietController.totalProteins.value /
+                  dietController.maxProteins.value;
+              double carbsProgress = dietController.totalCarbs.value /
+                  dietController.maxCarbs.value;
+              double fatProgress =
+                  dietController.totalFat.value / dietController.maxFat.value;
+              double waterProgress = hydrationController.totalWater.value /
+                  hydrationController.dailyGoal;
+
+              double averageProgress = (calorieProgress +
+                      proteinProgress +
+                      carbsProgress +
+                      fatProgress +
+                      waterProgress) /
+                  5;
+
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: LinearProgressIndicator(
+                  value: averageProgress,
+                  minHeight: 10,
+                  backgroundColor: Colors.grey[300],
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+                ),
+              );
+            }),
+            const SizedBox(height: 20),
+
+            buildDateSelector(),
+
             const SizedBox(height: 20),
 
             // Disposición de las tarjetas de progreso en dos filas y dos columnas
@@ -169,10 +190,8 @@ class _DietScreenState extends State<DietScreen> {
               children: [
                 TableRow(
                   children: [
-                    // Calorías (Izquierda Arriba)
                     buildNutritionCard('Calories', dietController.totalCalories,
                         dietController.maxCalories, Colors.orange),
-                    // Proteínas (Derecha Arriba)
                     buildNutritionCard('Proteins', dietController.totalProteins,
                         dietController.maxProteins, Colors.blue),
                   ],
@@ -185,75 +204,107 @@ class _DietScreenState extends State<DietScreen> {
                 ),
                 TableRow(
                   children: [
-                    // Carbohidratos (Izquierda Abajo)
                     buildNutritionCard('Carbs', dietController.totalCarbs,
                         dietController.maxCarbs, Colors.green),
-
                     buildNutritionCard('Fats', dietController.totalFat,
                         dietController.maxFat, Colors.purple),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 20), // Espacio antes de colocar el botón
-            HydrationCard(selectedDate: selectedDate),
             const SizedBox(height: 20),
-            // Botón para establecer metas debajo de la carta del agua
-            buildGoalsButton(),
+            HydrationCard(selectedDate: selectedDate),
           ],
         ),
       ),
     );
   }
 
-  // Botón para establecer metas
-  Widget buildGoalsButton() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: ElevatedButton(
-        onPressed: () {
-          // Mostrar el diálogo de actualización de metas
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return GoalSettingDialog(
-                dietController: dietController,
-                selectedDate: selectedDate, // Pasar la fecha seleccionada
-              );
-            },
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          backgroundColor: const Color.fromARGB(255, 255, 173, 173),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
-          elevation: 5,
-        ),
-        child: const Text(
-          'Update Goals',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 255, 173, 173),
+                    Color.fromARGB(255, 160, 158, 140)
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Text(
+                'Menu',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment),
+              title: const Text('Activities'),
+              onTap: () {
+                Navigator.pop(context); // Cerrar el Drawer
+                // Aquí puedes redirigir a la pantalla de "Activities"
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.update),
+              title: const Text('Update Goals'),
+              onTap: () {
+                Navigator.pop(context); // Cerrar el Drawer
+                // Abrir el diálogo de actualización de metas
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return GoalSettingDialog(
+                      dietController: dietController,
+                      selectedDate: selectedDate,
+                    );
+                  },
+                );
+              },
+            ),
+            const Divider(), // Separador
+            ListTile(
+              leading: const Icon(Icons.exit_to_app),
+              title: const Text('Log Out'),
+              onTap: () {
+                Navigator.pop(context); // Cerrar el Drawer
+                Navigator.pushReplacementNamed(context, '/');
+              },
+            ),
+          ],
+        ),
+      ),
       appBar: AppBar(
-        title: Text(_titles[_selectedIndex]), // Cambiar el título dinámicamente
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Image.asset(
+              'assets/imagenes/Macuernas.png',
+              height: 40,
+              width: 40,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _titles[_selectedIndex],
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(width: 8),
+            Image.asset(
+              'assets/imagenes/Macuernas.png',
+              height: 40,
+              width: 40,
+            ),
+          ],
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -261,8 +312,8 @@ class _DietScreenState extends State<DietScreen> {
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFFFA7268), // Color degradado superior
-                Color(0xFFF3ECEF), // Color degradado inferior
+                Color.fromARGB(255, 255, 173, 173),
+                Color.fromARGB(255, 255, 158, 140),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -277,25 +328,23 @@ class _DietScreenState extends State<DietScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        backgroundColor: const Color(0xFF1D1B20),
+        backgroundColor: const Color(0xFFFFFFFF),
         selectedItemColor: const Color.fromARGB(255, 255, 173, 173),
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        selectedLabelStyle:
-            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        selectedLabelStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
         unselectedLabelStyle: const TextStyle(color: Colors.grey),
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.pie_chart, size: 30), // Gráfico circular
+            icon: Icon(Icons.pie_chart, size: 30),
             label: 'Progress',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant, size: 30), // Icono de recetas
+            icon: Icon(Icons.restaurant, size: 30),
             label: 'Recipes',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment, size: 30), // Icono de humano
-            label: 'Activities',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings, size: 30),
@@ -306,19 +355,24 @@ class _DietScreenState extends State<DietScreen> {
     );
   }
 
+  // Método para manejar la navegación según el índice seleccionado
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   Widget buildNutritionCard(
       String title, RxDouble currentValue, RxDouble maxValue, Color color) {
     return GestureDetector(
       onTap: () {
-        // Detectar si es un gráfico específico y abrir el diálogo correspondiente
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return ConsumptionDialog(
               dietController: dietController,
               selectedDate: selectedDate,
-              title:
-                  title, // Pasar el título para identificar qué nutriente se está modificando
+              title: title,
             );
           },
         );
