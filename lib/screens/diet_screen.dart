@@ -153,7 +153,7 @@ class _DietScreenState extends State<DietScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Hi ${widget.userName}! Here is your progress',
+             'Hi ${widget.userName}! Here is your progress',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 20,
