@@ -69,8 +69,8 @@ flutter:
     - assets/imagenes/veggie_stirfry.jpg
     - assets/imagenes/Overnight-Oats.jpg
     - assets/imagenes/Welcome.jpg
+    - assets/imagenes/Macuernas.png
     - assets/imagenes/logini.png
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

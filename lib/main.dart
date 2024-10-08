@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:project1/Controllers/dietController.dart';
 import 'package:project1/Helpers/db_helper.dart';
+import 'package:project1/screens/diet_screen.dart';
 import 'screens/get_started.dart';
 
 void main() async {
