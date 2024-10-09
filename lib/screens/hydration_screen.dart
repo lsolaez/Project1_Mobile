@@ -2,25 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:project1/Controllers/hydration_controller.dart'; // Controlador de hidratación
 
-
 class HydrationCard extends StatefulWidget {
   final DateTime selectedDate;
+  final int userId; // Asegurarse de que el userId esté aquí
 
-  const HydrationCard({Key? key, required this.selectedDate}) : super(key: key);
+  const HydrationCard({Key? key, required this.selectedDate, required this.userId}) : super(key: key);
 
   @override
   _HydrationCardState createState() => _HydrationCardState();
 }
 
 class _HydrationCardState extends State<HydrationCard> {
-  final HydrationController hydrationController = Get.put(HydrationController());
+  late HydrationController hydrationController;
 
   static const double dailyGoal = 3000.0; // Meta diaria de agua (en ml)
 
   @override
   void initState() {
     super.initState();
-    hydrationController.loadWaterForDate(widget.selectedDate); // Cargar los datos para la fecha seleccionada
+    hydrationController = Get.put(HydrationController(userId: widget.userId)); // Pasar el userId al controlador
+    hydrationController.loadWaterForDate(widget.userId, widget.selectedDate); // Cargar los datos para la fecha seleccionada
   }
 
   @override
@@ -28,7 +29,7 @@ class _HydrationCardState extends State<HydrationCard> {
     super.didUpdateWidget(oldWidget);
     if (widget.selectedDate != oldWidget.selectedDate) {
       // Cargar los datos de agua para la nueva fecha seleccionada
-      hydrationController.loadWaterForDate(widget.selectedDate);
+      hydrationController.loadWaterForDate(widget.userId, widget.selectedDate);
     }
   }
 
@@ -97,7 +98,7 @@ class _HydrationCardState extends State<HydrationCard> {
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
-                hydrationController.addWater(hydrationController.glassSize.value, widget.selectedDate);
+                hydrationController.addWater(hydrationController.glassSize.value, widget.userId, widget.selectedDate); // Añadir el userId
               },
               child: const Text("Add glass of water"),
             ),

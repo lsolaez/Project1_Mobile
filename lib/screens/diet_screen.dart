@@ -10,8 +10,14 @@ import 'recipes_.dart';
 
 class DietScreen extends StatefulWidget {
   final String userName;
+  final String nombre;
+  final int userId; // Asegúrate de que este sea int y requerido
 
-  const DietScreen({super.key, required this.userName, required String nombre});
+  const DietScreen(
+      {super.key,
+      required this.userName,
+      required this.nombre,
+      required this.userId});
 
   @override
   _DietScreenState createState() => _DietScreenState();
@@ -20,7 +26,7 @@ class DietScreen extends StatefulWidget {
 class _DietScreenState extends State<DietScreen> {
   int _selectedIndex = 0;
   DateTime selectedDate = DateTime.now(); // Fecha seleccionada por defecto: Hoy
-  final DietController dietController = Get.put(DietController());
+  late DietController dietController;
   final ScrollController _scrollController =
       ScrollController(); // Controlador para el ListView
 
@@ -36,6 +42,12 @@ class _DietScreenState extends State<DietScreen> {
   @override
   void initState() {
     super.initState();
+
+    print('Valor de userId en DietScreen: ${widget.userId}');
+
+    // Inicializa el controlador pasándole el userId con Get.put
+    dietController = Get.put(DietController(userId: widget.userId));
+    dietController.loadProgressForDate(selectedDate);
     // Al iniciar, desplazar la lista para que el día actual quede centrado
     WidgetsBinding.instance.addPostFrameCallback((_) {
       scrollToSelectedDate();
@@ -127,10 +139,9 @@ class _DietScreenState extends State<DietScreen> {
     );
   }
 
-  // Pantalla de progreso
   Widget buildProgressScreen() {
     final HydrationController hydrationController =
-        Get.put(HydrationController());
+        Get.put(HydrationController(userId: widget.userId));
 
     return SingleChildScrollView(
       child: Padding(
@@ -139,7 +150,7 @@ class _DietScreenState extends State<DietScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-             'Hi ${widget.userName}! Here is your progress',
+              'Hi ${widget.userName}! Here is your progress',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 20,
@@ -213,7 +224,9 @@ class _DietScreenState extends State<DietScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            HydrationCard(selectedDate: selectedDate),
+            HydrationCard(
+                selectedDate: selectedDate,
+                userId: widget.userId), // Pasar userId al HydrationCard
           ],
         ),
       ),
@@ -251,7 +264,6 @@ class _DietScreenState extends State<DietScreen> {
               title: const Text('Activities'),
               onTap: () {
                 Navigator.pop(context); // Cerrar el Drawer
-                // Aquí puedes redirigir a la pantalla de "Activities"
               },
             ),
             ListTile(
@@ -276,8 +288,9 @@ class _DietScreenState extends State<DietScreen> {
               leading: const Icon(Icons.exit_to_app),
               title: const Text('Log Out'),
               onTap: () {
+                Get.delete<DietController>();
                 Navigator.pop(context); // Cerrar el Drawer
-                Navigator.pushReplacementNamed(context, '/');
+                Navigator.pushReplacementNamed(context, '/loginscreen');
               },
             ),
           ],

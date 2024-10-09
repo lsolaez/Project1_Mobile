@@ -4,22 +4,25 @@ import 'package:project1/Helpers/db_helper.dart';
 class HydrationController extends GetxController {
   RxDouble totalWater = 0.0.obs; // Total de agua bebida
   final double dailyGoal = 3000.0; // Meta diaria de agua
+  RxDouble glassSize = 250.0.obs; // Tamaño del vaso
 
-  RxDouble glassSize = 250.0.obs; // Tamaño del vaso para cada día
+  int userId; // Id del usuario
+
+  HydrationController({required this.userId}); // Constructor que recibe el userId
 
   // Método para añadir agua para un día específico
-  void addWater(double glassSize, DateTime selectedDate) {
+  void addWater(double glassSize, int userId, DateTime selectedDate) {
     totalWater.value += glassSize;
 
     // Guardar la información de agua y el tamaño del vaso para la fecha seleccionada
-    DBHelper.updateWaterForDate(selectedDate, totalWater.value);
-    DBHelper.saveGlassSizeForDate(selectedDate, glassSize);
+    DBHelper.updateWaterForDate(userId, selectedDate, totalWater.value);
+    DBHelper.saveGlassSizeForDate(userId, selectedDate, glassSize);
   }
 
-  // Cargar la cantidad de agua y tamaño de vaso para la fecha seleccionada
-  Future<void> loadWaterForDate(DateTime selectedDate) async {
-    var data = await DBHelper.getWaterForDate(selectedDate);
-    var glassData = await DBHelper.getGlassSizeForDate(selectedDate);
+  // Método para cargar la cantidad de agua y tamaño de vaso para la fecha seleccionada
+  Future<void> loadWaterForDate(int userId, DateTime selectedDate) async {
+    var data = await DBHelper.getWaterForDate(userId, selectedDate);
+    var glassData = await DBHelper.getGlassSizeForDate(userId, selectedDate);
 
     if (data != null) {
       totalWater.value = data['water'];
