@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login.dart'; 
+import 'login.dart'; // Asegúrate de tener este archivo creado
 
 class GetStartedScreen extends StatefulWidget {
   const GetStartedScreen({super.key});
@@ -24,7 +24,6 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
               ),
             ),
           ),
-
           Positioned(
             bottom: 30,
             left: 40,
@@ -42,10 +41,10 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
                       setState(() {
                         _isButtonPressed = true;
                       });
-                      // Navegar a la pantalla de login
+                      // Navegar a la pantalla login.dart
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                        MaterialPageRoute(builder: (context) => LoginScreen()), // Cambiado a LoginScreen()
                       );
                     },
                     child: const Text(
