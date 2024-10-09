@@ -7,84 +7,129 @@ class DBHelper {
     return openDatabase(
       join(await getDatabasesPath(), 'progress.db'),
       onCreate: (db, version) async {
-        // Crear la tabla para el progreso, ahora incluye grasas (fat)
+        // Crear tabla de usuarios
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fullName TEXT,
+            email TEXT,
+            phone TEXT,
+            sex TEXT,
+            age INTEGER,
+            password TEXT
+          )
+        ''');
+
+        // Crear las tablas de progreso y metas, ahora con el campo id (antes userId)
         await db.execute('''
           CREATE TABLE IF NOT EXISTS progress (
-            date TEXT PRIMARY KEY,
+            id INTEGER,
+            date TEXT,
             calories REAL,
             proteins REAL,
             carbs REAL,
-            fat REAL
+            fat REAL,
+            PRIMARY KEY (id, date),
+            FOREIGN KEY (id) REFERENCES users(id)
           )
         ''');
 
-        // Crear la tabla para las metas, ahora incluye grasas (fat)
         await db.execute('''
           CREATE TABLE IF NOT EXISTS goals (
-            date TEXT PRIMARY KEY,
+            id INTEGER,
+            date TEXT,
             calories REAL,
             proteins REAL,
             carbs REAL,
-            fat REAL
+            fat REAL,
+            PRIMARY KEY (id, date),
+            FOREIGN KEY (id) REFERENCES users(id)
           )
         ''');
 
-        // Crear la tabla para la ingesta de agua
         await db.execute('''
           CREATE TABLE IF NOT EXISTS water (
-            date TEXT PRIMARY KEY,
-            water REAL
+            id INTEGER,
+            date TEXT,
+            water REAL,
+            PRIMARY KEY (id, date),
+            FOREIGN KEY (id) REFERENCES users(id)
           )
         ''');
 
-        // Crear la tabla para el tamaño del vaso
         await db.execute('''
           CREATE TABLE IF NOT EXISTS glassSize (
-            date TEXT PRIMARY KEY,
-            glassSize REAL
+            id INTEGER,
+            date TEXT,
+            glassSize REAL,
+            PRIMARY KEY (id, date),
+            FOREIGN KEY (id) REFERENCES users(id)
           )
         ''');
       },
-      version: 4, // Cambiar versión a 4 para incluir "fat"
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS water (
-              date TEXT PRIMARY KEY,
-              water REAL
-            )
-          ''');
-        }
-        if (oldVersion < 3) {
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS glassSize (
-              date TEXT PRIMARY KEY,
-              glassSize REAL
-            )
-          ''');
-        }
-        if (oldVersion < 4) {
-          // Añadir columna fat a las tablas "progress" y "goals"
-          await db.execute('ALTER TABLE progress ADD COLUMN fat REAL');
-          await db.execute('ALTER TABLE goals ADD COLUMN fat REAL');
-        }
-      },
+      version: 5, // Nueva versión para actualizar las tablas
     );
   }
 
-  static String formatDate(DateTime date) {
-    return DateFormat('yyyy-MM-dd').format(date);
+  // Método para registrar un nuevo usuario
+  static Future<void> registerUser(
+    String fullName,
+    String email,
+    String phone,
+    String sex,
+    int age,
+    String password,
+  ) async {
+    final db = await database;
+
+    await db.insert(
+      'users',
+      {
+        'fullName': fullName,
+        'email': email,
+        'phone': phone,
+        'sex': sex,
+        'age': age,
+        'password': password,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  // Método para guardar o actualizar las metas para una fecha específica, ahora incluye grasas (fat)
+  // Método para verificar el inicio de sesión
+  static Future<Map<String, dynamic>?> loginUser(
+      String email, String password) async {
+    final db = await database;
+
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where: 'email = ? AND password = ?',
+      whereArgs: [email, password],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
+  // Guardar o actualizar metas para un usuario
   static Future<void> saveGoalsForDate(
-      DateTime date, double calories, double proteins, double carbs, double fat) async {
+    int id,
+    DateTime date,
+    double calories,
+    double proteins,
+    double carbs,
+    double fat,
+  ) async {
     final db = await database;
-    String formattedDate = formatDate(date);
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
 
     await db.insert(
       'goals',
       {
+        'id': id,
         'date': formattedDate,
         'calories': calories,
         'proteins': proteins,
@@ -95,33 +140,22 @@ class DBHelper {
     );
   }
 
-  // Método para obtener las metas de una fecha específica
-  static Future<Map<String, dynamic>?> getGoalsForDate(DateTime date) async {
-    final db = await database;
-    String formattedDate = formatDate(date);
-
-    List<Map<String, dynamic>> result = await db.query(
-      'goals',
-      where: 'date = ?',
-      whereArgs: [formattedDate],
-    );
-
-    if (result.isNotEmpty) {
-      return result.first;
-    } else {
-      return null;
-    }
-  }
-
-  // Método para guardar o actualizar el progreso de una fecha específica, ahora incluye grasas (fat)
+  // Guardar o actualizar progreso para un usuario
   static Future<void> updateProgressForDate(
-      DateTime date, double calories, double proteins, double carbs, double fat) async {
+    int id,
+    DateTime date,
+    double calories,
+    double proteins,
+    double carbs,
+    double fat,
+  ) async {
     final db = await database;
-    String formattedDate = formatDate(date);
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
 
     await db.insert(
       'progress',
       {
+        'id': id,
         'date': formattedDate,
         'calories': calories,
         'proteins': proteins,
@@ -132,64 +166,88 @@ class DBHelper {
     );
   }
 
-  // Método para obtener el progreso de una fecha específica
-  static Future<Map<String, dynamic>?> getProgressForDate(DateTime date) async {
-    final db = await database;
-    String formattedDate = formatDate(date);
-
-    List<Map<String, dynamic>> result = await db.query(
-      'progress',
-      where: 'date = ?',
-      whereArgs: [formattedDate],
-    );
-
-    if (result.isNotEmpty) {
-      return result.first;
-    } else {
-      return null;
-    }
-  }
-
-  // Método para guardar o actualizar la ingesta de agua para una fecha específica
+  // Guardar ingesta de agua para un usuario
   static Future<void> updateWaterForDate(
-      DateTime date, double waterAmount) async {
+      int id, DateTime date, double waterAmount) async {
     final db = await database;
-    String formattedDate = formatDate(date);
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
 
     await db.insert(
       'water',
       {
+        'id': id,
         'date': formattedDate,
         'water': waterAmount,
       },
-      conflictAlgorithm: ConflictAlgorithm.replace, // Reemplazar si ya existe
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  // Método para guardar o actualizar el tamaño del vaso para una fecha específica
-  static Future<void> saveGlassSizeForDate(DateTime date, double glassSize) async {
+  // Guardar tamaño del vaso para un usuario
+  static Future<void> saveGlassSizeForDate(
+      int id, DateTime date, double glassSize) async {
     final db = await database;
-    String formattedDate = formatDate(date);
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
 
     await db.insert(
       'glassSize',
       {
+        'id': id,
         'date': formattedDate,
         'glassSize': glassSize,
       },
-      conflictAlgorithm: ConflictAlgorithm.replace, // Reemplazar si ya existe
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  // Método para obtener la ingesta de agua para una fecha específica
-  static Future<Map<String, dynamic>?> getWaterForDate(DateTime date) async {
+  // Obtener metas de una fecha específica para un usuario
+  static Future<Map<String, dynamic>?> getGoalsForDate(
+      int id, DateTime date) async {
     final db = await database;
-    String formattedDate = formatDate(date);
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    List<Map<String, dynamic>> result = await db.query(
+      'goals',
+      where: 'id = ? AND date = ?',
+      whereArgs: [id, formattedDate],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
+  // Obtener progreso de una fecha específica para un usuario
+  static Future<Map<String, dynamic>?> getProgressForDate(
+      int id, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    List<Map<String, dynamic>> result = await db.query(
+      'progress',
+      where: 'id = ? AND date = ?',
+      whereArgs: [id, formattedDate],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
+  // Obtener ingesta de agua para una fecha específica y un usuario
+  static Future<Map<String, dynamic>?> getWaterForDate(
+      int id, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
 
     List<Map<String, dynamic>> result = await db.query(
       'water',
-      where: 'date = ?',
-      whereArgs: [formattedDate],
+      where: 'id = ? AND date = ?',
+      whereArgs: [id, formattedDate],
     );
 
     if (result.isNotEmpty) {
@@ -199,15 +257,16 @@ class DBHelper {
     }
   }
 
-  // Método para obtener el tamaño del vaso para una fecha específica
-  static Future<Map<String, dynamic>?> getGlassSizeForDate(DateTime date) async {
+  // Obtener tamaño del vaso para una fecha específica y un usuario
+  static Future<Map<String, dynamic>?> getGlassSizeForDate(
+      int id, DateTime date) async {
     final db = await database;
-    String formattedDate = formatDate(date);
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
 
     List<Map<String, dynamic>> result = await db.query(
       'glassSize',
-      where: 'date = ?',
-      whereArgs: [formattedDate],
+      where: 'id = ? AND date = ?',
+      whereArgs: [id, formattedDate],
     );
 
     if (result.isNotEmpty) {
@@ -215,6 +274,53 @@ class DBHelper {
     } else {
       return null;
     }
+  }
+
+  // Método para obtener el ID de un usuario dado su correo electrónico
+  static Future<int> getUserId(String email) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users', // Asegúrate de que la tabla 'users' tiene una columna id
+      columns: ['id'], // Debe ser la columna que almacena el id
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first['id']; // Cambiado de 'userId' a 'id'
+    } else {
+      throw Exception('User not found');
+    }
+  }
+
+  // Obtener el nombre completo de un usuario dado su correo electrónico
+  static Future<String> getUserFullName(String email) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users', // Asegúrate de tener una tabla llamada 'users'
+      columns: ['fullName'],
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first['fullName'];
+    } else {
+      return ''; // Si no se encuentra el usuario, devuelve una cadena vacía
+    }
+  }
+
+  // Método para validar el usuario
+  static Future<bool> validateUser(String email, String password) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where:
+          'email = ? AND password = ?', // Asegúrate de que tengas una columna de "email" y "password"
+      whereArgs: [email, password],
+    );
+
+    return result.isNotEmpty;
   }
 
   // Método para eliminar la base de datos (si necesitas resetearla)
