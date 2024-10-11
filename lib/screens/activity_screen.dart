@@ -1,44 +1,100 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:project1/Helpers/db_helper.dart';
 
 class ActivityScreen extends StatefulWidget {
+  final int userId;
+
+  ActivityScreen({required this.userId});
+
   @override
   _ActivityScreenState createState() => _ActivityScreenState();
 }
 
 class _ActivityScreenState extends State<ActivityScreen> {
   List<Activity> activities = [];
-  List<Activity> deletedActivities = [
-    Activity('Medications', 'Health', 'assets/imagenes/A1.jpg'),
-    Activity('Sleep', 'Health', 'assets/imagenes/A2.jpg'),
-    Activity('Heart', 'Health', 'assets/imagenes/A3.jpg'),
-    Activity('Running', 'Sports', 'assets/imagenes/A4.jpg'),
-    Activity('Yoga', 'Sports', 'assets/imagenes/A5.jpg'),
-    Activity('Handwashing', 'Health', 'assets/imagenes/A6.jpg'),
-  ];
+  List<Activity> deletedActivities = [];
+  DateTime selectedDate = DateTime.now();
+  Map<String, List<String>> activityData = {
+    'Medications': [],
+    'Sleep': [],
+    'Yoga': [],
+    'Running': [],
+    'Handwashing': [],
+    'Heart': [],
+  }; // Aquí se guardarán los datos de la actividad
 
-  Map<String, List<String>> sleepData = {};
-  Map<String, List<String>> yogaData = {};
-  Map<String, List<String>> runningData = {};
-  Map<String, List<String>> handwashingData = {};
-  Map<String, List<String>> heartData = {}; 
-  Map<String, List<String>> medicationsData = {};
+  @override
+  void initState() {
+    super.initState();
+    loadActivitiesForDate();
+    loadDeletedActivities(); // Cargar actividades eliminadas
+  }
+
+  // Cargar las actividades activas
+  Future<void> loadActivitiesForDate() async {
+    List<Map<String, dynamic>> result = await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
+
+    setState(() {
+      Map<String, List<String>> mutableActivityData = Map<String, List<String>>.from(activityData);
+
+      activities = result.map((activityData) {
+        String? activityTitle = activityData['title'] as String?;
+        String? activityContent = activityData['data']?.toString();
+
+        if (activityTitle != null && activityTitle.isNotEmpty) {
+          if (activityContent != null && activityContent.isNotEmpty) {
+            mutableActivityData[activityTitle] = List<String>.from(activityContent.split(';'));
+          }
+
+          return Activity(
+            activityTitle,
+            'Health', // Puedes manejar el subtítulo como desees
+            'assets/imagenes/$activityTitle.jpg',
+          );
+        } else {
+          return Activity(
+            'Unknown Activity',
+            'Health',
+            'assets/imagenes/default.jpg',
+          );
+        }
+      }).toList();
+
+      activityData = mutableActivityData;
+    });
+  }
+
+  // Cargar las actividades eliminadas (More Activities)
+  Future<void> loadDeletedActivities() async {
+    List<String> allActivityTitles = ['Medications', 'Sleep', 'Yoga', 'Running', 'Handwashing', 'Heart'];
+    List<String> activeActivityTitles = activities.map((activity) => activity.title).toList();
+
+    setState(() {
+      deletedActivities = allActivityTitles
+          .where((title) => !activeActivityTitles.contains(title))
+          .map((title) => Activity(title, 'Health', 'assets/imagenes/$title.jpg'))
+          .toList();
+    });
+  }
+
+  Future<void> saveActivity(Activity activity) async {
+    await DBHelper.saveActivityForDate(
+        widget.userId, activity.title, 'some data', selectedDate);
+    loadActivitiesForDate();
+    loadDeletedActivities();
+  }
+
+  Future<void> deleteActivity(Activity activity) async {
+    await DBHelper.deleteActivityForUser(
+        widget.userId, activity.title, selectedDate);
+    loadActivitiesForDate();
+    loadDeletedActivities();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFF9A8B),
-        elevation: 0,
-        title: const Text(
-          'Activities',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 28,
-          ),
-        ),
-        centerTitle: true,
-      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -101,9 +157,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
             child: Text(
               day.day.toString(),
               style: TextStyle(
-                fontWeight: day.day == today.day
-                    ? FontWeight.bold
-                    : FontWeight.normal,
+                fontWeight:
+                    day.day == today.day ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ),
@@ -133,33 +188,18 @@ class _ActivityScreenState extends State<ActivityScreen> {
           color: Colors.white,
         ),
       ),
-      onDismissed: (direction) {
-        setState(() {
-          if (isActive) {
-            activities.remove(activity);
-            deletedActivities.add(activity);
-          } else {
-            deletedActivities.remove(activity);
-            activities.add(activity);
-          }
-        });
+      onDismissed: (direction) async {
+        if (isActive) {
+          await deleteActivity(activity);
+        } else {
+          await saveActivity(activity);
+        }
       },
       child: GestureDetector(
-onTap: () {
-  if (activity.title == 'Sleep') {
-    showSleepDialog();
-  } else if (activity.title == 'Yoga') {
-    showYogaDialog();
-  } else if (activity.title == 'Running') {
-    showRunningDialog();
-  } else if (activity.title == 'Handwashing') {
-    showHandwashingDialog();
-  } else if (activity.title == 'Heart') {
-    showHeartDialog();
-  } else if (activity.title == 'Medications') { 
-    showMedicationsDialog();
-  }
-},
+        onTap: () {
+          openActivityDetails(
+              activity); // Llamada para abrir el diálogo según la actividad
+        },
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 8.0),
           padding: const EdgeInsets.all(12.0),
@@ -194,159 +234,52 @@ onTap: () {
       ),
     );
   }
-void showMedicationsDialog() {
-  final nameController = TextEditingController();
-  final quantityController = TextEditingController();
-  String selectedUnit = 'mg'; 
-  String customUnit = ''; 
-  List<String> medicationsEntries = medicationsData['Medications'] ?? [];
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      String currentSelectedUnit = selectedUnit; 
-
-      return StatefulBuilder( 
-        builder: (BuildContext context, StateSetter setState) {
-          return AlertDialog(
-            title: Text('Add Medications Data'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(labelText: 'Medication Name'),
-                ),
-                TextField(
-                  controller: quantityController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Quantity'),
-                ),
-                DropdownButton<String>(
-                  value: currentSelectedUnit,
-                  items: ['mg', 'g', 'ml', 'mm', 'others']
-                      .map((String unit) {
-                    return DropdownMenuItem<String>(
-                      value: unit,
-                      child: Text(unit),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      currentSelectedUnit = newValue!;
-                      if (currentSelectedUnit != 'others') {
-                        customUnit = '';
-                      }
-                    });
-                  },
-                ),
-                if (currentSelectedUnit == 'others')
-                  TextField(
-                    onChanged: (value) {
-                      customUnit = value; 
-                    },
-                    decoration: InputDecoration(labelText: 'Custom Unit'),
-                  ),
-                Container(
-                  margin: const EdgeInsets.only(top: 16.0),
-                  padding: const EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text('Medications Entries:', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ...medicationsEntries.map((entry) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(entry),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  medicationsEntries.remove(entry);
-                                  medicationsData['Medications'] = medicationsEntries;
-                                });
-                              },
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  final name = nameController.text;
-                  final quantity = quantityController.text;
-                  if (name.isNotEmpty || quantity.isNotEmpty) {
-                    setState(() {
-                      String unitToUse = currentSelectedUnit == 'others' ? customUnit : currentSelectedUnit;
-                      String entry = '$name: ${quantity.isNotEmpty ? quantity + (unitToUse.isNotEmpty ? unitToUse : '') : ""}';
-                      if (medicationsData['Medications'] == null) {
-                        medicationsData['Medications'] = [];
-                      }
-                      medicationsData['Medications']!.add(entry);
-                    });
-                  }
-                  Navigator.of(context).pop();
-                },
-                child: Text('Add'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('Close'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
+  void openActivityDetails(Activity activity) {
+    if (activity.title == 'Sleep') {
+      showSleepDialog();
+    } else if (activity.title == 'Yoga') {
+      showYogaDialog();
+    } else if (activity.title == 'Running') {
+      showRunningDialog();
+    } else if (activity.title == 'Handwashing') {
+      showHandwashingDialog();
+    } else if (activity.title == 'Heart') {
+      showHeartDialog();
+    } else if (activity.title == 'Medications') {
+      showMedicationsDialog();
+    }
+  }
 
   void showSleepDialog() {
     final hoursController = TextEditingController();
     final minutesController = TextEditingController();
-    List<String> sleepEntries = sleepData['Sleep'] ?? [];
-    
+    List<String> sleepEntries = activityData['Sleep'] ?? [];
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text('Add Sleep Data'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: hoursController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Hours'),
-              ),
-              TextField(
-                controller: minutesController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Minutes'),
-              ),
-              Container(
-                margin: const EdgeInsets.only(top: 16.0),
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: hoursController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Hours'),
                 ),
-                child: Column(
-                  children: [
-                    const Text('Sleep Entries:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ...sleepEntries.map((entry) {
+                TextField(
+                  controller: minutesController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Minutes'),
+                ),
+                SizedBox(
+                  height: 150,
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: sleepEntries.map((entry) {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -356,17 +289,17 @@ void showMedicationsDialog() {
                             onPressed: () {
                               setState(() {
                                 sleepEntries.remove(entry);
-                                sleepData['Sleep'] = sleepEntries;
+                                activityData['Sleep'] = sleepEntries;
                               });
                             },
                           ),
                         ],
                       );
                     }).toList(),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -377,11 +310,10 @@ void showMedicationsDialog() {
                   setState(() {
                     String entry =
                         '${hours.isNotEmpty ? hours + "h" : ""} ${minutes.isNotEmpty ? minutes + "m" : ""}';
-                    if (sleepData['Sleep'] == null) {
-                      sleepData['Sleep'] = [];
-                    }
-                    sleepData['Sleep']!.add(entry);
+                    sleepEntries.add(entry);
+                    activityData['Sleep'] = sleepEntries;
                   });
+                  saveActivity(Activity('Sleep', 'Health', 'assets/imagenes/Sleep.jpg'));
                 }
                 Navigator.of(context).pop();
               },
@@ -400,232 +332,135 @@ void showMedicationsDialog() {
   }
 
   void showYogaDialog() {
-  final hoursController = TextEditingController();
-  final minutesController = TextEditingController();
-  String selectedTimeOfDay = 'Morning';
-  List<String> yogaEntries = yogaData['Yoga'] ?? [];
+    final hoursController = TextEditingController();
+    final minutesController = TextEditingController();
+    String selectedTimeOfDay = 'Morning';
+    List<String> yogaEntries = activityData['Yoga'] ?? [];
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text('Add Yoga Data'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButton<String>(
-                  value: selectedTimeOfDay,
-                  items: ['Morning', 'Afternoon', 'Evening']
-                      .map((String time) {
-                    return DropdownMenuItem<String>(
-                      value: time,
-                      child: Text(time),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedTimeOfDay = newValue!;
-                    });
-                  },
-                ),
-                TextField(
-                  controller: hoursController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Hours'),
-                ),
-                TextField(
-                  controller: minutesController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Minutes'),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(top: 16.0),
-                  padding: const EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text('Yoga Entries:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      ...yogaEntries.map((entry) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(entry),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  yogaEntries.remove(entry);
-                                  yogaData['Yoga'] = yogaEntries;
-                                });
-                              },
-                            ),
-                          ],
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Add Yoga Data'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButton<String>(
+                      value: selectedTimeOfDay,
+                      items: ['Morning', 'Afternoon', 'Evening']
+                          .map((String time) {
+                        return DropdownMenuItem<String>(
+                          value: time,
+                          child: Text(time),
                         );
                       }).toList(),
-                    ],
-                  ),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedTimeOfDay = newValue!;
+                        });
+                      },
+                    ),
+                    TextField(
+                      controller: hoursController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Hours'),
+                    ),
+                    TextField(
+                      controller: minutesController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Minutes'),
+                    ),
+                    SizedBox(
+                      height: 150,
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: yogaEntries.map((entry) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(entry),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () {
+                                  setState(() {
+                                    yogaEntries.remove(entry);
+                                    activityData['Yoga'] = yogaEntries;
+                                  });
+                                },
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    final hours = hoursController.text;
+                    final minutes = minutesController.text;
+                    if (hours.isNotEmpty || minutes.isNotEmpty) {
+                      setState(() {
+                        String entry =
+                            '$selectedTimeOfDay: ${hours.isNotEmpty ? hours + "h" : ""} ${minutes.isNotEmpty ? minutes + "m" : ""}';
+                        yogaEntries.add(entry);
+                        activityData['Yoga'] = yogaEntries;
+                      });
+                      saveActivity(Activity('Yoga', 'Sports', 'assets/imagenes/Yoga.jpg'));
+                    }
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Add'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Close'),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  final hours = hoursController.text;
-                  final minutes = minutesController.text;
-                  if (hours.isNotEmpty || minutes.isNotEmpty) {
-                    setState(() {
-                      String entry =
-                          '${selectedTimeOfDay}: ${hours.isNotEmpty ? hours + "h" : ""} ${minutes.isNotEmpty ? minutes + "m" : ""}';
-                      if (yogaData['Yoga'] == null) {
-                        yogaData['Yoga'] = [];
-                      }
-                      yogaData['Yoga']!.add(entry);
-                    });
-                  }
-                  Navigator.of(context).pop();
-                },
-                child: Text('Add'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('Close'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
+            );
+          },
+        );
+      },
+    );
+  }
 
- void showRunningDialog() {
-  final hoursController = TextEditingController();
-  final distanceController = TextEditingController();
-  List<String> runningEntries = runningData['Running'] ?? [];
+  // Running Dialog
+  void showRunningDialog() {
+    final distanceController = TextEditingController();
+    final hoursController = TextEditingController();
+    List<String> runningEntries = activityData['Running'] ?? [];
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text('Add Running Data'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: hoursController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Hours'),
-            ),
-            TextField(
-              controller: distanceController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Distance (km)'),
-            ),
-            Container(
-              margin: const EdgeInsets.only(top: 16.0),
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: [
-                  const Text('Running Entries:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ...runningEntries.map((entry) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(entry),
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () {
-                            setState(() {
-                              runningEntries.remove(entry);
-                              runningData['Running'] = runningEntries;
-                            });
-                          },
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              final hours = hoursController.text;
-              final distance = distanceController.text;
-
-              if (hours.isNotEmpty || distance.isNotEmpty) {
-                setState(() {
-                  String entry = '';
-                  if (hours.isNotEmpty) {
-                    entry += '${hours}h';
-                  }
-                  if (distance.isNotEmpty) {
-                    entry += ' ${distance}km';
-                  }
-                  if (runningData['Running'] == null) {
-                    runningData['Running'] = [];
-                  }
-                  runningData['Running']!.add(entry.trim());
-                });
-              }
-              Navigator.of(context).pop();
-            },
-            child: Text('Add'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: Text('Close'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-  void showHandwashingDialog() {
-    final secondsController = TextEditingController();
-    List<String> handwashingEntries = handwashingData['Handwashing'] ?? [];
-    
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add Handwashing Data'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: secondsController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Seconds'),
-              ),
-              Container(
-                margin: const EdgeInsets.only(top: 16.0),
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
+          title: Text('Add Running Data'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: distanceController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Distance (km)'),
                 ),
-                child: Column(
-                  children: [
-                    const Text('Handwashing Entries:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ...handwashingEntries.map((entry) {
+                TextField(
+                  controller: hoursController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Time (hours)'),
+                ),
+                SizedBox(
+                  height: 150,
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: runningEntries.map((entry) {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -634,31 +469,32 @@ void showMedicationsDialog() {
                             icon: Icon(Icons.delete),
                             onPressed: () {
                               setState(() {
-                                handwashingEntries.remove(entry);
-                                handwashingData['Handwashing'] = handwashingEntries;
+                                runningEntries.remove(entry);
+                                activityData['Running'] = runningEntries;
                               });
                             },
                           ),
                         ],
                       );
                     }).toList(),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                final seconds = secondsController.text;
-                if (seconds.isNotEmpty) {
+                final distance = distanceController.text;
+                final hours = hoursController.text;
+                if (distance.isNotEmpty || hours.isNotEmpty) {
                   setState(() {
-                    String entry = '${seconds}s';
-                    if (handwashingData['Handwashing'] == null) {
-                      handwashingData['Handwashing'] = [];
-                    }
-                    handwashingData['Handwashing']!.add(entry);
+                    String entry =
+                        '${distance.isNotEmpty ? distance + "km" : ""} ${hours.isNotEmpty ? hours + "h" : ""}';
+                    runningEntries.add(entry);
+                    activityData['Running'] = runningEntries;
                   });
+                  saveActivity(Activity('Running', 'Sports', 'assets/imagenes/Running.jpg'));
                 }
                 Navigator.of(context).pop();
               },
@@ -676,45 +512,30 @@ void showMedicationsDialog() {
     );
   }
 
-  void showHeartDialog() {
-    final systolicController = TextEditingController();
-    final diastolicController = TextEditingController();
-    final timeController = TextEditingController();
-    List<String> heartEntries = heartData['Heart'] ?? [];
-    
+  // Handwashing Dialog
+  void showHandwashingDialog() {
+    final secondsController = TextEditingController();
+    List<String> handwashingEntries = activityData['Handwashing'] ?? [];
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add Heart Data'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: systolicController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Systolic (mmHg)'),
-              ),
-              TextField(
-                controller: diastolicController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Diastolic (mmHg)'),
-              ),
-              TextField(
-                controller: timeController,
-                decoration: InputDecoration(labelText: 'Time (HH:mm)'),
-              ),
-              Container(
-                margin: const EdgeInsets.only(top: 16.0),
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
+          title: Text('Add Handwashing Data'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: secondsController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Seconds'),
                 ),
-                child: Column(
-                  children: [
-                    const Text('Heart Entries:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ...heartEntries.map((entry) {
+                SizedBox(
+                  height: 150,
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: handwashingEntries.map((entry) {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -723,34 +544,31 @@ void showMedicationsDialog() {
                             icon: Icon(Icons.delete),
                             onPressed: () {
                               setState(() {
-                                heartEntries.remove(entry);
-                                heartData['Heart'] = heartEntries;
+                                handwashingEntries.remove(entry);
+                                activityData['Handwashing'] =
+                                    handwashingEntries;
                               });
                             },
                           ),
                         ],
                       );
                     }).toList(),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                final systolic = systolicController.text;
-                final diastolic = diastolicController.text;
-                final time = timeController.text;
-                if (systolic.isNotEmpty || diastolic.isNotEmpty || time.isNotEmpty) {
+                final seconds = secondsController.text;
+                if (seconds.isNotEmpty) {
                   setState(() {
-                    String entry =
-                        'S: $systolic mmHg, D:$diastolic mmHg,$time';
-                    if (heartData['Heart'] == null) {
-                      heartData['Heart'] = [];
-                    }
-                    heartData['Heart']!.add(entry);
+                    String entry = '${seconds}s';
+                    handwashingEntries.add(entry);
+                    activityData['Handwashing'] = handwashingEntries;
                   });
+                  saveActivity(Activity('Handwashing', 'Health', 'assets/imagenes/Handwashing.jpg'));
                 }
                 Navigator.of(context).pop();
               },
@@ -763,6 +581,207 @@ void showMedicationsDialog() {
               child: Text('Close'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  // Heart Dialog
+  void showHeartDialog() {
+    final systolicController = TextEditingController();
+    final diastolicController = TextEditingController();
+    final timeController = TextEditingController();
+    List<String> heartEntries = activityData['Heart'] ?? [];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add Heart Data'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: systolicController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Systolic (mmHg)'),
+                ),
+                TextField(
+                  controller: diastolicController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Diastolic (mmHg)'),
+                ),
+                TextField(
+                  controller: timeController,
+                  decoration: InputDecoration(labelText: 'Time (HH:mm)'),
+                ),
+                SizedBox(
+                  height: 150,
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: heartEntries.map((entry) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(entry),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () {
+                              setState(() {
+                                heartEntries.remove(entry);
+                                activityData['Heart'] = heartEntries;
+                              });
+                            },
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                final systolic = systolicController.text;
+                final diastolic = diastolicController.text;
+                final time = timeController.text;
+                if (systolic.isNotEmpty ||
+                    diastolic.isNotEmpty ||
+                    time.isNotEmpty) {
+                  setState(() {
+                    String entry =
+                        'Systolic: $systolic mmHg, Diastolic: $diastolic mmHg at $time';
+                    heartEntries.add(entry);
+                    activityData['Heart'] = heartEntries;
+                  });
+                  saveActivity(Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'));
+                }
+                Navigator.of(context).pop();
+              },
+              child: Text('Add'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Medications Dialog
+  void showMedicationsDialog() {
+    final nameController = TextEditingController();
+    final quantityController = TextEditingController();
+    String selectedUnit = 'mg';
+    String customUnit = '';
+    List<String> medicationsEntries = activityData['Medications'] ?? [];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Add Medications Data'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(labelText: 'Medication Name'),
+                    ),
+                    TextField(
+                      controller: quantityController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Quantity'),
+                    ),
+                    DropdownButton<String>(
+                      value: selectedUnit,
+                      items:
+                          ['mg', 'g', 'ml', 'mm', 'others'].map((String unit) {
+                        return DropdownMenuItem<String>(
+                          value: unit,
+                          child: Text(unit),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedUnit = newValue!;
+                          if (selectedUnit != 'others') {
+                            customUnit = '';
+                          }
+                        });
+                      },
+                    ),
+                    if (selectedUnit == 'others')
+                      TextField(
+                        onChanged: (value) {
+                          customUnit = value;
+                        },
+                        decoration: InputDecoration(labelText: 'Custom Unit'),
+                      ),
+                    SizedBox(
+                      height: 150,
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: medicationsEntries.map((entry) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(entry),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () {
+                                  setState(() {
+                                    medicationsEntries.remove(entry);
+                                    activityData['Medications'] =
+                                        medicationsEntries;
+                                  });
+                                },
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    final name = nameController.text;
+                    final quantity = quantityController.text;
+                    if (name.isNotEmpty || quantity.isNotEmpty) {
+                      setState(() {
+                        String entry =
+                            '$name: ${quantity.isNotEmpty ? quantity + (customUnit.isNotEmpty ? customUnit : selectedUnit) : ""}';
+                        medicationsEntries.add(entry);
+                        activityData['Medications'] = medicationsEntries;
+                      });
+                      saveActivity(Activity('Medications', 'Health', 'assets/imagenes/Medications.jpg'));
+                    }
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Add'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Close'),
+                ),
+              ],
+            );
+          },
         );
       },
     );

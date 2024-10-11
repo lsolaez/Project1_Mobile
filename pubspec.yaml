@@ -71,12 +71,12 @@ flutter:
     - assets/imagenes/Welcome.jpg
     - assets/imagenes/Macuernas.png
     - assets/imagenes/logini.png
-    - assets/imagenes/A1.jpg
-    - assets/imagenes/A2.jpg
-    - assets/imagenes/A3.jpg
-    - assets/imagenes/A4.jpg
-    - assets/imagenes/A5.jpg
-    - assets/imagenes/A6.jpg
+    - assets/imagenes/Medications.jpg
+    - assets/imagenes/Sleep.jpg
+    - assets/imagenes/Heart.jpg
+    - assets/imagenes/Running.jpg
+    - assets/imagenes/Yoga.jpg
+    - assets/imagenes/Handwashing.jpg
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

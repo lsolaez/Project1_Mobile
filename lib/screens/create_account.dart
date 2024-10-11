@@ -1,7 +1,7 @@
 
 
 import 'package:flutter/material.dart';
-import 'package:project1/Helpers/db_helper.dart';
+import 'package:project1/helpers/db_helper.dart';
 
 // ignore: must_be_immutable
 class CreateAccountScreen extends StatelessWidget {

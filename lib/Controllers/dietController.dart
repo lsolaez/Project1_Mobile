@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:project1/Helpers/db_helper.dart';
+import 'package:project1/helpers/db_helper.dart';
 
 class DietController extends GetxController {
   RxDouble totalCalories = 0.0.obs;

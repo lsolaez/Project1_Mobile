@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:project1/Controllers/dietController.dart';
 import 'package:project1/Controllers/hydration_controller.dart';
+import 'package:project1/screens/activity_screen.dart';
 import 'package:project1/screens/hydration_screen.dart';
 import 'package:project1/widgets/ConsumptionDialog.dart';
 import 'package:project1/widgets/GoalSettingDialog.dart';
@@ -33,7 +34,7 @@ class _DietScreenState extends State<DietScreen> {
   final List<String> _titles = [
     'Progress',
     'Healthy Recipes',
-    'Settings',
+    'Activities',
   ];
 
   int daysInPast = 30; // Número de días en el pasado
@@ -42,9 +43,6 @@ class _DietScreenState extends State<DietScreen> {
   @override
   void initState() {
     super.initState();
-
-    print('Valor de userId en DietScreen: ${widget.userId}');
-
     // Inicializa el controlador pasándole el userId con Get.put
     dietController = Get.put(DietController(userId: widget.userId));
     dietController.loadProgressForDate(selectedDate);
@@ -70,7 +68,7 @@ class _DietScreenState extends State<DietScreen> {
   List<Widget> _screens() => [
         buildProgressScreen(),
         RecipesContent(selectedDate: selectedDate), // Pantalla de recetas
-        const Text('Settings Screen'), // Pantalla de ajustes
+        ActivityScreen(userId: widget.userId), // con el userId
       ];
 
   // Método para mostrar los días de forma horizontal y scroleable
@@ -297,26 +295,10 @@ class _DietScreenState extends State<DietScreen> {
         ),
       ),
       appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Image.asset(
-              'assets/imagenes/Macuernas.png',
-              height: 40,
-              width: 40,
-            ),
-            const SizedBox(width: 8),
+        title: 
             Text(
               _titles[_selectedIndex],
               style: const TextStyle(color: Colors.white),
-            ),
-            const SizedBox(width: 8),
-            Image.asset(
-              'assets/imagenes/Macuernas.png',
-              height: 40,
-              width: 40,
-            ),
-          ],
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -360,8 +342,8 @@ class _DietScreenState extends State<DietScreen> {
             label: 'Recipes',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings, size: 30),
-            label: 'Settings',
+            icon: Icon(Icons.assignment, size: 30),
+            label: 'Activities',
           ),
         ],
       ),

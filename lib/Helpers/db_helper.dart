@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
+import 'package:project1/screens/activity_screen.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DBHelper {
@@ -20,7 +21,7 @@ class DBHelper {
           )
         ''');
 
-        // Crear las tablas de progreso y metas, ahora con el campo id (antes userId)
+        // Crear las tablas de progreso y metas
         await db.execute('''
           CREATE TABLE IF NOT EXISTS progress (
             id INTEGER,
@@ -66,8 +67,20 @@ class DBHelper {
             FOREIGN KEY (id) REFERENCES users(id)
           )
         ''');
+
+        // Tabla de actividades
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS activities (
+            userId INTEGER,
+            title TEXT,
+            date TEXT,
+            data TEXT,
+            PRIMARY KEY (userId, title, date),
+            FOREIGN KEY (userId) REFERENCES users(id)
+          )
+        ''');
       },
-      version: 5, // Nueva versión para actualizar las tablas
+      version: 6,
     );
   }
 
@@ -114,6 +127,90 @@ class DBHelper {
     }
   }
 
+  // Obtener actividades para un usuario en una fecha específica
+  static Future<List<Activity>> getActivitiesForUser(
+      int userId, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    final result = await db.query(
+      'activities',
+      where: 'userId = ? AND date = ?',
+      whereArgs: [userId, formattedDate],
+    );
+
+    return result.map((activityData) {
+      return Activity(
+        activityData['title'] as String,
+        'Health', // El subtítulo puede ser gestionado en la UI
+        'assets/imagenes/${activityData['title']}.jpg',
+      );
+    }).toList();
+  }
+
+  // Guardar actividad para un usuario en una fecha
+  static Future<void> saveActivityForUser(
+      int userId, String title, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    await db.insert(
+      'activities',
+      {
+        'userId': userId,
+        'title': title,
+        'date': formattedDate,
+        'data': '',
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Eliminar actividad para un usuario en una fecha
+  static Future<void> deleteActivityForUser(
+      int userId, String title, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    await db.delete(
+      'activities',
+      where: 'userId = ? AND title = ? AND date = ?',
+      whereArgs: [userId, title, formattedDate],
+    );
+  }
+
+  // Guardar datos específicos de una actividad en una fecha
+  static Future<void> saveActivityDataForUser(
+      int userId, String title, DateTime date, String data) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    await db.update(
+      'activities',
+      {'data': data},
+      where: 'userId = ? AND title = ? AND date = ?',
+      whereArgs: [userId, title, formattedDate],
+    );
+  }
+
+  // Obtener metas de una fecha específica para un usuario
+  static Future<Map<String, dynamic>?> getGoalsForDate(
+      int id, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    List<Map<String, dynamic>> result = await db.query(
+      'goals',
+      where: 'id = ? AND date = ?',
+      whereArgs: [id, formattedDate],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
   // Guardar o actualizar metas para un usuario
   static Future<void> saveGoalsForDate(
     int id,
@@ -138,6 +235,25 @@ class DBHelper {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  // Obtener progreso de una fecha específica para un usuario
+  static Future<Map<String, dynamic>?> getProgressForDate(
+      int id, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    List<Map<String, dynamic>> result = await db.query(
+      'progress',
+      where: 'id = ? AND date = ?',
+      whereArgs: [id, formattedDate],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
   }
 
   // Guardar o actualizar progreso para un usuario
@@ -183,61 +299,6 @@ class DBHelper {
     );
   }
 
-  // Guardar tamaño del vaso para un usuario
-  static Future<void> saveGlassSizeForDate(
-      int id, DateTime date, double glassSize) async {
-    final db = await database;
-    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
-
-    await db.insert(
-      'glassSize',
-      {
-        'id': id,
-        'date': formattedDate,
-        'glassSize': glassSize,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  // Obtener metas de una fecha específica para un usuario
-  static Future<Map<String, dynamic>?> getGoalsForDate(
-      int id, DateTime date) async {
-    final db = await database;
-    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
-
-    List<Map<String, dynamic>> result = await db.query(
-      'goals',
-      where: 'id = ? AND date = ?',
-      whereArgs: [id, formattedDate],
-    );
-
-    if (result.isNotEmpty) {
-      return result.first;
-    } else {
-      return null;
-    }
-  }
-
-  // Obtener progreso de una fecha específica para un usuario
-  static Future<Map<String, dynamic>?> getProgressForDate(
-      int id, DateTime date) async {
-    final db = await database;
-    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
-
-    List<Map<String, dynamic>> result = await db.query(
-      'progress',
-      where: 'id = ? AND date = ?',
-      whereArgs: [id, formattedDate],
-    );
-
-    if (result.isNotEmpty) {
-      return result.first;
-    } else {
-      return null;
-    }
-  }
-
   // Obtener ingesta de agua para una fecha específica y un usuario
   static Future<Map<String, dynamic>?> getWaterForDate(
       int id, DateTime date) async {
@@ -255,6 +316,23 @@ class DBHelper {
     } else {
       return null;
     }
+  }
+
+  // Guardar tamaño del vaso para un usuario
+  static Future<void> saveGlassSizeForDate(
+      int id, DateTime date, double glassSize) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    await db.insert(
+      'glassSize',
+      {
+        'id': id,
+        'date': formattedDate,
+        'glassSize': glassSize,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   // Obtener tamaño del vaso para una fecha específica y un usuario
@@ -280,14 +358,14 @@ class DBHelper {
   static Future<int> getUserId(String email) async {
     final db = await database;
     List<Map<String, dynamic>> result = await db.query(
-      'users', // Asegúrate de que la tabla 'users' tiene una columna id
-      columns: ['id'], // Debe ser la columna que almacena el id
+      'users',
+      columns: ['id'],
       where: 'email = ?',
       whereArgs: [email],
     );
 
     if (result.isNotEmpty) {
-      return result.first['id']; // Cambiado de 'userId' a 'id'
+      return result.first['id'];
     } else {
       throw Exception('User not found');
     }
@@ -297,7 +375,7 @@ class DBHelper {
   static Future<String> getUserFullName(String email) async {
     final db = await database;
     List<Map<String, dynamic>> result = await db.query(
-      'users', // Asegúrate de tener una tabla llamada 'users'
+      'users',
       columns: ['fullName'],
       where: 'email = ?',
       whereArgs: [email],
@@ -306,7 +384,7 @@ class DBHelper {
     if (result.isNotEmpty) {
       return result.first['fullName'];
     } else {
-      return ''; // Si no se encuentra el usuario, devuelve una cadena vacía
+      return '';
     }
   }
 
@@ -315,15 +393,47 @@ class DBHelper {
     final db = await database;
     List<Map<String, dynamic>> result = await db.query(
       'users',
-      where:
-          'email = ? AND password = ?', // Asegúrate de que tengas una columna de "email" y "password"
+      where: 'email = ? AND password = ?',
       whereArgs: [email, password],
     );
 
     return result.isNotEmpty;
   }
 
-  // Método para eliminar la base de datos (si necesitas resetearla)
+  // Obtener actividades para un usuario en una fecha específica
+  static Future<List<Map<String, dynamic>>> getActivitiesForDate(
+      int userId, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    List<Map<String, dynamic>> result = await db.query(
+      'activities',
+      where: 'userId = ? AND date = ?',
+      whereArgs: [userId, formattedDate],
+    );
+
+    return result;
+  }
+
+  // Guardar una actividad para un usuario en una fecha específica
+  static Future<void> saveActivityForDate(
+      int userId, String title, String data, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    await db.insert(
+      'activities',
+      {
+        'userId': userId,
+        'title': title,
+        'date': formattedDate,
+        'data': data,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Método para eliminar la base de datos
   static Future<void> deleteDatabase() async {
     String path = join(await getDatabasesPath(), 'progress.db');
     await databaseFactory.deleteDatabase(path);
