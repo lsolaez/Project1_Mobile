@@ -4,8 +4,9 @@ import 'package:project1/Helpers/db_helper.dart';
 
 class ActivityScreen extends StatefulWidget {
   final int userId;
+  final DateTime dateSelected;
 
-  ActivityScreen({required this.userId});
+  ActivityScreen({required this.userId, required this.dateSelected});
 
   @override
   _ActivityScreenState createState() => _ActivityScreenState();
@@ -14,7 +15,7 @@ class ActivityScreen extends StatefulWidget {
 class _ActivityScreenState extends State<ActivityScreen> {
   List<Activity> activities = [];
   List<Activity> deletedActivities = [];
-  DateTime selectedDate = DateTime.now();
+  late DateTime selectedDate;
   Map<String, List<String>> activityData = {
     'Medications': [],
     'Sleep': [],
@@ -27,16 +28,35 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   void initState() {
     super.initState();
+    selectedDate = widget.dateSelected; // Asigna la fecha seleccionada
     loadActivitiesForDate();
     loadDeletedActivities(); // Cargar actividades eliminadas
+  }
+    // Método para detectar cambios en el widget, en particular la fecha seleccionada
+  @override
+  void didUpdateWidget(ActivityScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Solo actualizar si la fecha seleccionada cambió
+    if (oldWidget.dateSelected != widget.dateSelected) {
+      setState(() {
+        selectedDate = widget.dateSelected;
+        loadActivitiesForDate(); // Cargar actividades para la nueva fecha
+      });
+    }
   }
 
   // Cargar las actividades activas
   Future<void> loadActivitiesForDate() async {
-    List<Map<String, dynamic>> result = await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
+    List<Map<String, dynamic>> result =
+        await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
 
     setState(() {
-      Map<String, List<String>> mutableActivityData = Map<String, List<String>>.from(activityData);
+      Map<String, List<String>> mutableActivityData =
+          Map<String, List<String>>.from(activityData);
+
+      // Limpiar la lista de actividades antes de cargar nuevas
+      activities.clear();
 
       activities = result.map((activityData) {
         String? activityTitle = activityData['title'] as String?;
@@ -44,7 +64,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
         if (activityTitle != null && activityTitle.isNotEmpty) {
           if (activityContent != null && activityContent.isNotEmpty) {
-            mutableActivityData[activityTitle] = List<String>.from(activityContent.split(';'));
+            mutableActivityData[activityTitle] =
+                List<String>.from(activityContent.split(';'));
           }
 
           return Activity(
@@ -63,24 +84,43 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
       activityData = mutableActivityData;
     });
+
+    // Asegúrate de que las actividades eliminadas estén actualizadas
+    loadDeletedActivities();
   }
 
-  // Cargar las actividades eliminadas (More Activities)
+// Cargar las actividades eliminadas (More Activities)
   Future<void> loadDeletedActivities() async {
-    List<String> allActivityTitles = ['Medications', 'Sleep', 'Yoga', 'Running', 'Handwashing', 'Heart'];
-    List<String> activeActivityTitles = activities.map((activity) => activity.title).toList();
+    List<String> allActivityTitles = [
+      'Medications',
+      'Sleep',
+      'Yoga',
+      'Running',
+      'Handwashing',
+      'Heart'
+    ];
+    List<String> activeActivityTitles =
+        activities.map((activity) => activity.title).toList();
 
     setState(() {
+      // Limpiar la lista de actividades eliminadas antes de cargar nuevas
+      deletedActivities.clear();
+
+      // Filtrar actividades que no estén activas
       deletedActivities = allActivityTitles
           .where((title) => !activeActivityTitles.contains(title))
-          .map((title) => Activity(title, 'Health', 'assets/imagenes/$title.jpg'))
+          .map((title) =>
+              Activity(title, 'Health', 'assets/imagenes/$title.jpg'))
           .toList();
     });
   }
 
-  Future<void> saveActivity(Activity activity) async {
+  Future<void> saveActivity(Activity activity, String data) async {
     await DBHelper.saveActivityForDate(
-        widget.userId, activity.title, 'some data', selectedDate);
+        widget.userId,
+        activity.title,
+        data, // Aquí ahora pasamos el valor de data
+        selectedDate);
     loadActivitiesForDate();
     loadDeletedActivities();
   }
@@ -142,23 +182,26 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   Widget buildCalendar() {
-    final today = DateTime.now();
     final days = List.generate(7, (index) {
-      final day = today.subtract(Duration(days: today.weekday - 1 - index));
+      final day = selectedDate
+          .subtract(Duration(days: selectedDate.weekday - 1 - index));
       return Column(
         children: [
           Text(DateFormat.E().format(day)),
           Container(
             decoration: BoxDecoration(
-              color: day.day == today.day ? Colors.orange : Colors.transparent,
+              color: day.day == selectedDate.day
+                  ? Colors.orange
+                  : Colors.transparent,
               shape: BoxShape.circle,
             ),
             padding: const EdgeInsets.all(8),
             child: Text(
               day.day.toString(),
               style: TextStyle(
-                fontWeight:
-                    day.day == today.day ? FontWeight.bold : FontWeight.normal,
+                fontWeight: day.day == selectedDate.day
+                    ? FontWeight.bold
+                    : FontWeight.normal,
               ),
             ),
           ),
@@ -189,10 +232,26 @@ class _ActivityScreenState extends State<ActivityScreen> {
         ),
       ),
       onDismissed: (direction) async {
+        setState(() {
+          if (isActive) {
+            // Remover de actividades activas
+            activities.remove(activity);
+            // Agregar a actividades eliminadas
+            deletedActivities.add(activity);
+          } else {
+            // Remover de actividades eliminadas
+            deletedActivities.remove(activity);
+            // Agregar a actividades activas
+            activities.add(activity);
+          }
+        });
+
+        // Ejecutar la acción después de modificar las listas
         if (isActive) {
           await deleteActivity(activity);
         } else {
-          await saveActivity(activity);
+          await saveActivity(
+              activity, activityData[activity.title]?.join(';') ?? '');
         }
       },
       child: GestureDetector(
@@ -251,6 +310,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
+// Diálogo de Sleep
   void showSleepDialog() {
     final hoursController = TextEditingController();
     final minutesController = TextEditingController();
@@ -313,7 +373,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     sleepEntries.add(entry);
                     activityData['Sleep'] = sleepEntries;
                   });
-                  saveActivity(Activity('Sleep', 'Health', 'assets/imagenes/Sleep.jpg'));
+
+                  // Guardar los datos reales
+                  String dataToSave = sleepEntries.join(';');
+                  saveActivity(
+                      Activity('Sleep', 'Health', 'assets/imagenes/Sleep.jpg'),
+                      dataToSave);
                 }
                 Navigator.of(context).pop();
               },
@@ -331,6 +396,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
+// Diálogo de Yoga
   void showYogaDialog() {
     final hoursController = TextEditingController();
     final minutesController = TextEditingController();
@@ -411,7 +477,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         yogaEntries.add(entry);
                         activityData['Yoga'] = yogaEntries;
                       });
-                      saveActivity(Activity('Yoga', 'Sports', 'assets/imagenes/Yoga.jpg'));
+
+                      // Guardar los datos reales
+                      String dataToSave = yogaEntries.join(';');
+                      saveActivity(
+                          Activity(
+                              'Yoga', 'Sports', 'assets/imagenes/Yoga.jpg'),
+                          dataToSave);
                     }
                     Navigator.of(context).pop();
                   },
@@ -431,7 +503,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  // Running Dialog
+// Diálogo de Running
   void showRunningDialog() {
     final distanceController = TextEditingController();
     final hoursController = TextEditingController();
@@ -494,7 +566,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     runningEntries.add(entry);
                     activityData['Running'] = runningEntries;
                   });
-                  saveActivity(Activity('Running', 'Sports', 'assets/imagenes/Running.jpg'));
+
+                  // Guardar los datos reales
+                  String dataToSave = runningEntries.join(';');
+                  saveActivity(
+                      Activity(
+                          'Running', 'Sports', 'assets/imagenes/Running.jpg'),
+                      dataToSave);
                 }
                 Navigator.of(context).pop();
               },
@@ -512,7 +590,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  // Handwashing Dialog
+// Diálogo de Handwashing
   void showHandwashingDialog() {
     final secondsController = TextEditingController();
     List<String> handwashingEntries = activityData['Handwashing'] ?? [];
@@ -568,7 +646,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     handwashingEntries.add(entry);
                     activityData['Handwashing'] = handwashingEntries;
                   });
-                  saveActivity(Activity('Handwashing', 'Health', 'assets/imagenes/Handwashing.jpg'));
+
+                  // Guardar los datos reales
+                  String dataToSave = handwashingEntries.join(';');
+                  saveActivity(
+                      Activity('Handwashing', 'Health',
+                          'assets/imagenes/Handwashing.jpg'),
+                      dataToSave);
                 }
                 Navigator.of(context).pop();
               },
@@ -586,7 +670,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  // Heart Dialog
+// Diálogo de Heart
   void showHeartDialog() {
     final systolicController = TextEditingController();
     final diastolicController = TextEditingController();
@@ -657,7 +741,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     heartEntries.add(entry);
                     activityData['Heart'] = heartEntries;
                   });
-                  saveActivity(Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'));
+
+                  // Guardar los datos reales
+                  String dataToSave = heartEntries.join(';');
+                  saveActivity(
+                      Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
+                      dataToSave);
                 }
                 Navigator.of(context).pop();
               },
@@ -675,7 +764,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  // Medications Dialog
+// Diálogo de Medications
   void showMedicationsDialog() {
     final nameController = TextEditingController();
     final quantityController = TextEditingController();
@@ -767,7 +856,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         medicationsEntries.add(entry);
                         activityData['Medications'] = medicationsEntries;
                       });
-                      saveActivity(Activity('Medications', 'Health', 'assets/imagenes/Medications.jpg'));
+
+                      // Guardar los datos reales
+                      String dataToSave = medicationsEntries.join(';');
+                      saveActivity(
+                          Activity('Medications', 'Health',
+                              'assets/imagenes/Medications.jpg'),
+                          dataToSave);
                     }
                     Navigator.of(context).pop();
                   },

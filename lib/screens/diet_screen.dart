@@ -68,7 +68,10 @@ class _DietScreenState extends State<DietScreen> {
   List<Widget> _screens() => [
         buildProgressScreen(),
         RecipesContent(selectedDate: selectedDate), // Pantalla de recetas
-        ActivityScreen(userId: widget.userId), // con el userId
+        ActivityScreen(
+          userId: widget.userId,
+          dateSelected: selectedDate,
+        ), // con el userId
       ];
 
   // Método para mostrar los días de forma horizontal y scroleable
@@ -295,10 +298,9 @@ class _DietScreenState extends State<DietScreen> {
         ),
       ),
       appBar: AppBar(
-        title: 
-            Text(
-              _titles[_selectedIndex],
-              style: const TextStyle(color: Colors.white),
+        title: Text(
+          _titles[_selectedIndex],
+          style: const TextStyle(color: Colors.white),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -351,6 +353,7 @@ class _DietScreenState extends State<DietScreen> {
   }
 
   // Método para manejar la navegación según el índice seleccionado
+// Método para manejar la navegación según el índice seleccionado
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
