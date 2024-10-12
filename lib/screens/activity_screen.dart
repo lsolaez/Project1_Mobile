@@ -32,11 +32,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
     loadActivitiesForDate();
     loadDeletedActivities(); // Cargar actividades eliminadas
   }
-    // Método para detectar cambios en el widget, en particular la fecha seleccionada
+
+  // Método para detectar cambios en el widget, en particular la fecha seleccionada
   @override
   void didUpdateWidget(ActivityScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Solo actualizar si la fecha seleccionada cambió
     if (oldWidget.dateSelected != widget.dateSelected) {
       setState(() {
@@ -48,6 +49,19 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   // Cargar las actividades activas
   Future<void> loadActivitiesForDate() async {
+    // Limpiar los datos antes de cargar nuevas actividades
+    setState(() {
+      activityData = {
+        'Medications': [],
+        'Sleep': [],
+        'Yoga': [],
+        'Running': [],
+        'Handwashing': [],
+        'Heart': [],
+      };
+    });
+
+    // Ahora cargar las actividades de la base de datos para la fecha seleccionada
     List<Map<String, dynamic>> result =
         await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
 
@@ -89,7 +103,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     loadDeletedActivities();
   }
 
-// Cargar las actividades eliminadas (More Activities)
+  // Cargar las actividades eliminadas (More Activities)
   Future<void> loadDeletedActivities() async {
     List<String> allActivityTitles = [
       'Medications',
@@ -310,7 +324,131 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
-// Diálogo de Sleep
+  // Diálogo de Medications
+  void showMedicationsDialog() {
+    final nameController = TextEditingController();
+    final quantityController = TextEditingController();
+    String selectedUnit = 'mg';
+    String customUnit = '';
+
+    // Obtener los datos de medicamentos solo para la fecha seleccionada
+    List<String> medicationsEntries = activityData['Medications'] ?? [];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Add Medications Data'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration:
+                          InputDecoration(labelText: 'Medication Name'),
+                    ),
+                    TextField(
+                      controller: quantityController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Quantity'),
+                    ),
+                    DropdownButton<String>(
+                      value: selectedUnit,
+                      items: ['mg', 'g', 'ml', 'mm', 'others']
+                          .map((String unit) {
+                        return DropdownMenuItem<String>(
+                          value: unit,
+                          child: Text(unit),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedUnit = newValue!;
+                          if (selectedUnit != 'others') {
+                            customUnit = '';
+                          }
+                        });
+                      },
+                    ),
+                    if (selectedUnit == 'others')
+                      TextField(
+                        onChanged: (value) {
+                          customUnit = value;
+                        },
+                        decoration:
+                            InputDecoration(labelText: 'Custom Unit'),
+                      ),
+                    SizedBox(
+                      height: 150,
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: medicationsEntries.map((entry) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(entry),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () {
+                                  setState(() {
+                                    medicationsEntries.remove(entry);
+                                    activityData['Medications'] =
+                                        medicationsEntries;
+                                  });
+                                },
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    final name = nameController.text;
+                    final quantity = quantityController.text;
+                    if (name.isNotEmpty || quantity.isNotEmpty) {
+                      setState(() {
+                        String entry =
+                            '$name: ${quantity.isNotEmpty ? quantity + (customUnit.isNotEmpty ? customUnit : selectedUnit) : ""}';
+                        medicationsEntries.add(entry);
+                        activityData['Medications'] = medicationsEntries;
+                      });
+
+                      // Guardar los datos reales
+                      String dataToSave = medicationsEntries.join(';');
+                      saveActivity(
+                          Activity('Medications', 'Health',
+                              'assets/imagenes/Medications.jpg'),
+                          dataToSave);
+                    }
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Add'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // El resto de los diálogos se mantienen igual, pero ya cuentan con la limpieza de los datos por fecha.
+
+  // Diálogo de Sleep
   void showSleepDialog() {
     final hoursController = TextEditingController();
     final minutesController = TextEditingController();
@@ -396,7 +534,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-// Diálogo de Yoga
+  // Diálogo de Yoga
   void showYogaDialog() {
     final hoursController = TextEditingController();
     final minutesController = TextEditingController();
@@ -503,7 +641,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-// Diálogo de Running
+  // Diálogo de Running
   void showRunningDialog() {
     final distanceController = TextEditingController();
     final hoursController = TextEditingController();
@@ -590,7 +728,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-// Diálogo de Handwashing
+  // Diálogo de Handwashing
   void showHandwashingDialog() {
     final secondsController = TextEditingController();
     List<String> handwashingEntries = activityData['Handwashing'] ?? [];
@@ -670,7 +808,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-// Diálogo de Heart
+  // Diálogo de Heart
   void showHeartDialog() {
     final systolicController = TextEditingController();
     final diastolicController = TextEditingController();
@@ -759,124 +897,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
               child: Text('Close'),
             ),
           ],
-        );
-      },
-    );
-  }
-
-// Diálogo de Medications
-  void showMedicationsDialog() {
-    final nameController = TextEditingController();
-    final quantityController = TextEditingController();
-    String selectedUnit = 'mg';
-    String customUnit = '';
-    List<String> medicationsEntries = activityData['Medications'] ?? [];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return AlertDialog(
-              title: Text('Add Medications Data'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(labelText: 'Medication Name'),
-                    ),
-                    TextField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'Quantity'),
-                    ),
-                    DropdownButton<String>(
-                      value: selectedUnit,
-                      items:
-                          ['mg', 'g', 'ml', 'mm', 'others'].map((String unit) {
-                        return DropdownMenuItem<String>(
-                          value: unit,
-                          child: Text(unit),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedUnit = newValue!;
-                          if (selectedUnit != 'others') {
-                            customUnit = '';
-                          }
-                        });
-                      },
-                    ),
-                    if (selectedUnit == 'others')
-                      TextField(
-                        onChanged: (value) {
-                          customUnit = value;
-                        },
-                        decoration: InputDecoration(labelText: 'Custom Unit'),
-                      ),
-                    SizedBox(
-                      height: 150,
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: medicationsEntries.map((entry) {
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(entry),
-                              IconButton(
-                                icon: Icon(Icons.delete),
-                                onPressed: () {
-                                  setState(() {
-                                    medicationsEntries.remove(entry);
-                                    activityData['Medications'] =
-                                        medicationsEntries;
-                                  });
-                                },
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    final name = nameController.text;
-                    final quantity = quantityController.text;
-                    if (name.isNotEmpty || quantity.isNotEmpty) {
-                      setState(() {
-                        String entry =
-                            '$name: ${quantity.isNotEmpty ? quantity + (customUnit.isNotEmpty ? customUnit : selectedUnit) : ""}';
-                        medicationsEntries.add(entry);
-                        activityData['Medications'] = medicationsEntries;
-                      });
-
-                      // Guardar los datos reales
-                      String dataToSave = medicationsEntries.join(';');
-                      saveActivity(
-                          Activity('Medications', 'Health',
-                              'assets/imagenes/Medications.jpg'),
-                          dataToSave);
-                    }
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Add'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Close'),
-                ),
-              ],
-            );
-          },
         );
       },
     );
