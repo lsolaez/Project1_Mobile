@@ -706,107 +706,125 @@ class _ActivityScreenState extends State<ActivityScreen> {
   final systolicController = TextEditingController();
   final diastolicController = TextEditingController();
   final timeController = TextEditingController();
-  List<String> heartEntries = activityData['Heart'] ?? [];
+  List<String> heartEntries = List.from(activityData['Heart'] ?? []);
 
   showDialog(
     context: context,
     builder: (context) {
-      return AlertDialog(
-        title: Text('Add Heart Data'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: systolicController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Systolic (mmHg)'),
-              ),
-              TextField(
-                controller: diastolicController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Diastolic (mmHg)'),
-              ),
-              TextField(
-                controller: timeController,
-                decoration: InputDecoration(labelText: 'Time (HH:mm)'),
-              ),
-              Container(
-                margin: const EdgeInsets.only(top: 16.0),
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Heart Entries:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+      return StatefulBuilder( // Usamos StatefulBuilder para actualizar el estado del diálogo en tiempo real
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Add Heart Data'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: systolicController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Systolic (mmHg)'),
+                  ),
+                  TextField(
+                    controller: diastolicController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Diastolic (mmHg)'),
+                  ),
+                  TextField(
+                    controller: timeController,
+                    decoration: InputDecoration(labelText: 'Time (HH:mm)'),
+                  ),
+                  const SizedBox(height: 16.0),
+                  Container(
+                    margin: const EdgeInsets.only(top: 16.0),
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    // Aquí aplicamos las mismas dimensiones y ajustes
-                    Container(
-                      height: 150, // Misma altura que en SleepDialog
-                      child: ListView.builder(
-                        itemCount: heartEntries.length,
-                        itemBuilder: (context, index) {
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                child: Text(heartEntries[index],
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete),
-                                onPressed: () {
-                                  setState(() {
-                                    heartEntries.removeAt(index);
-                                    activityData['Heart'] = heartEntries;
-                                  });
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, // Alinea el texto a la izquierda
+                      children: [
+                        const Text(
+                          'Heart Entries:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        if (heartEntries.isNotEmpty)
+                          SizedBox(
+                            height: 150, // Altura fija para la lista de entradas
+                            child: ListView.builder(
+                              itemCount: heartEntries.length,
+                              itemBuilder: (context, index) {
+                                return SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal, // Scroll horizontal
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(heartEntries[index]),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () {
+                                          setState(() {
+                                            heartEntries.removeAt(index);
+                                            activityData['Heart'] = heartEntries;
+
+                                            // Guardar los cambios en la base de datos
+                                            String dataToSave = heartEntries.join(';');
+                                            saveActivity(
+                                              Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
+                                              dataToSave,
+                                            );
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        else
+                          const SizedBox(), // Si no hay entradas, no mostrar nada
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  final systolic = systolicController.text;
+                  final diastolic = diastolicController.text;
+                  final time = timeController.text;
+
+                  if (systolic.isNotEmpty || diastolic.isNotEmpty || time.isNotEmpty) {
+                    setState(() {
+                      String entry =
+                          'Systolic: $systolic mmHg, Diastolic: $diastolic mmHg at $time';
+                      heartEntries.add(entry);
+                      activityData['Heart'] = heartEntries;
+
+                      // Guardar los datos reales en la base de datos
+                      String dataToSave = heartEntries.join(';');
+                      saveActivity(
+                        Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
+                        dataToSave,
+                      );
+                    });
+                  }
+                  Navigator.of(context).pop(); // Cerrar el diálogo
+                },
+                child: const Text('Add'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Cerrar el diálogo
+                },
+                child: const Text('Close'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              final systolic = systolicController.text;
-              final diastolic = diastolicController.text;
-              final time = timeController.text;
-
-              if (systolic.isNotEmpty || diastolic.isNotEmpty || time.isNotEmpty) {
-                setState(() {
-                  String entry = 'Systolic: $systolic mmHg, Diastolic: $diastolic mmHg at $time';
-                  heartEntries.add(entry);
-                  activityData['Heart'] = heartEntries;
-                });
-
-                // Guardar los datos en la base de datos
-                String dataToSave = heartEntries.join(';');
-                saveActivity(Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'), dataToSave);
-              }
-              Navigator.of(context).pop();
-            },
-            child: Text('Add'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: Text('Close'),
-          ),
-        ],
+          );
+        },
       );
     },
   );
