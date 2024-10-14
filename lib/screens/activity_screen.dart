@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:project1/Helpers/db_helper.dart';
+import 'package:project1/Helpers/db_helper.dart'; // Asegúrate de tener importado DBHelper
 
 class ActivityScreen extends StatefulWidget {
   final int userId;
@@ -14,220 +14,139 @@ class ActivityScreen extends StatefulWidget {
 
 class _ActivityScreenState extends State<ActivityScreen> {
   List<Activity> activities = [];
-  List<Activity> deletedActivities = [];
-  late DateTime selectedDate;
-  Map<String, List<String>> activityData = {
-    'Medications': [],
-    'Sleep': [],
-    'Yoga': [],
-    'Running': [],
-    'Handwashing': [],
-    'Heart': [],
-  }; // Aquí se guardarán los datos de la actividad
+  List<Activity> deletedActivities = [
+    Activity('Medications', 'Health', 'assets/imagenes/A1.jpg'),
+    Activity('Sleep', 'Health', 'assets/imagenes/A2.jpg'),
+    Activity('Heart', 'Health', 'assets/imagenes/A3.jpg'),
+    Activity('Running', 'Sports', 'assets/imagenes/A4.jpg'),
+    Activity('Yoga', 'Sports', 'assets/imagenes/A5.jpg'),
+    Activity('Handwashing', 'Health', 'assets/imagenes/A6.jpg'),
+  ];
+  Map<String, List<String>> activityData =
+      {}; // Para almacenar las entradas de las actividades
 
   @override
   void initState() {
     super.initState();
-    selectedDate = widget.dateSelected; // Asigna la fecha seleccionada
-    loadActivitiesForDate();
-    loadDeletedActivities(); // Cargar actividades eliminadas
+    loadActivitiesForDate(); // Cargar actividades de la base de datos al iniciar
   }
 
-  // Método para detectar cambios en el widget, en particular la fecha seleccionada
-  @override
-  void didUpdateWidget(ActivityScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // Solo actualizar si la fecha seleccionada cambió
-    if (oldWidget.dateSelected != widget.dateSelected) {
-      setState(() {
-        selectedDate = widget.dateSelected;
-        loadActivitiesForDate(); // Cargar actividades para la nueva fecha
-      });
-    }
-  }
-
-  // Cargar las actividades activas
   Future<void> loadActivitiesForDate() async {
-    // Limpiar los datos antes de cargar nuevas actividades
-    setState(() {
-      activityData = {
-        'Medications': [],
-        'Sleep': [],
-        'Yoga': [],
-        'Running': [],
-        'Handwashing': [],
-        'Heart': [],
-      };
-    });
-
-    // Ahora cargar las actividades de la base de datos para la fecha seleccionada
+    // Cargar las actividades de la base de datos para la fecha y usuario seleccionados
     List<Map<String, dynamic>> result =
-        await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
+        await DBHelper.getActivitiesForDate(widget.userId, widget.dateSelected);
 
     setState(() {
-      Map<String, List<String>> mutableActivityData =
-          Map<String, List<String>>.from(activityData);
-
-      // Limpiar la lista de actividades antes de cargar nuevas
       activities.clear();
-
-      activities = result.map((activityData) {
-        String? activityTitle = activityData['title'] as String?;
-        String? activityContent = activityData['data']?.toString();
-
-        if (activityTitle != null && activityTitle.isNotEmpty) {
-          if (activityContent != null && activityContent.isNotEmpty) {
-            mutableActivityData[activityTitle] =
-                List<String>.from(activityContent.split(';'));
-          }
-
-          return Activity(
-            activityTitle,
-            'Health', // Puedes manejar el subtítulo como desees
-            'assets/imagenes/$activityTitle.jpg',
-          );
-        } else {
-          return Activity(
-            'Unknown Activity',
-            'Health',
-            'assets/imagenes/default.jpg',
-          );
-        }
-      }).toList();
-
-      activityData = mutableActivityData;
-    });
-
-    // Asegúrate de que las actividades eliminadas estén actualizadas
-    loadDeletedActivities();
-  }
-
-  // Cargar las actividades eliminadas (More Activities)
-  Future<void> loadDeletedActivities() async {
-    List<String> allActivityTitles = [
-      'Medications',
-      'Sleep',
-      'Yoga',
-      'Running',
-      'Handwashing',
-      'Heart'
-    ];
-    List<String> activeActivityTitles =
-        activities.map((activity) => activity.title).toList();
-
-    setState(() {
-      // Limpiar la lista de actividades eliminadas antes de cargar nuevas
-      deletedActivities.clear();
-
-      // Filtrar actividades que no estén activas
-      deletedActivities = allActivityTitles
-          .where((title) => !activeActivityTitles.contains(title))
-          .map((title) =>
-              Activity(title, 'Health', 'assets/imagenes/$title.jpg'))
-          .toList();
+      activityData.clear();
+      for (var row in result) {
+        String title = row['title'];
+        String data = row['data'];
+        activityData[title] = data.split(';'); // Guardar los datos en el mapa
+        activities.add(Activity(title, 'Health', 'assets/imagenes/$title.jpg'));
+      }
     });
   }
 
   Future<void> saveActivity(Activity activity, String data) async {
+    // Guardar actividad en la base de datos
     await DBHelper.saveActivityForDate(
-        widget.userId,
-        activity.title,
-        data, // Aquí ahora pasamos el valor de data
-        selectedDate);
-    loadActivitiesForDate();
-    loadDeletedActivities();
+        widget.userId, activity.title, data, widget.dateSelected);
+    loadActivitiesForDate(); // Recargar las actividades actualizadas
   }
 
   Future<void> deleteActivity(Activity activity) async {
+    // Eliminar actividad de la base de datos
     await DBHelper.deleteActivityForUser(
-        widget.userId, activity.title, selectedDate);
-    loadActivitiesForDate();
-    loadDeletedActivities();
+        widget.userId, activity.title, widget.dateSelected);
+    loadActivitiesForDate(); // Recargar las actividades actualizadas
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFFF9A8B), Color(0xFFF3ECEF)],
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFF9A8B),
+        elevation: 0,
+        title: const Text(
+          'Activities',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 28,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFF9A8B), Color(0xFFF3ECEF)],
+          ),
+        ),
+        child: Column(
+          children: [
+            buildCalendar(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(8.0),
+                children: [
+                  const Divider(),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      'Available Activities',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  ...activities.map((activity) {
+                    return buildDismissibleActivity(activity, true);
+                  }).toList(),
+                  const Divider(),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      'More Activities',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  ...deletedActivities.map((activity) {
+                    return buildDismissibleActivity(activity, false);
+                  }).toList(),
+                ],
               ),
             ),
-            child: Column(
-              children: [
-                buildCalendar(),
-                // Aseguramos que el ListView expanda correctamente
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(8.0),
-                    children: [
-                      const Divider(),
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          'Available Activities',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      ...activities.map((activity) {
-                        return buildDismissibleActivity(activity, true);
-                      }).toList(),
-                      const Divider(),
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          'More Activities',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      ...deletedActivities.map((activity) {
-                        return buildDismissibleActivity(activity, false);
-                      }).toList(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 
   Widget buildCalendar() {
+    final today = DateTime.now();
     final days = List.generate(7, (index) {
-      final day = selectedDate
-          .subtract(Duration(days: selectedDate.weekday - 1 - index));
+      final day = today.subtract(Duration(days: today.weekday - 1 - index));
       return Column(
         children: [
           Text(DateFormat.E().format(day)),
           Container(
             decoration: BoxDecoration(
-              color: day.day == selectedDate.day
-                  ? Colors.orange
-                  : Colors.transparent,
+              color: day.day == today.day ? Colors.orange : Colors.transparent,
               shape: BoxShape.circle,
             ),
             padding: const EdgeInsets.all(8),
             child: Text(
               day.day.toString(),
               style: TextStyle(
-                fontWeight: day.day == selectedDate.day
-                    ? FontWeight.bold
-                    : FontWeight.normal,
+                fontWeight:
+                    day.day == today.day ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ),
         ],
       );
     });
-
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -237,219 +156,79 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
- Widget buildDismissibleActivity(Activity activity, bool isActive) {
-  return Dismissible(
-    key: Key(activity.title + (isActive ? 'active' : 'deleted')),
-    direction: DismissDirection.endToStart,
-    background: Container(
-      color: isActive ? Colors.red : Colors.green,
-      alignment: Alignment.centerRight,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Icon(
-        isActive ? Icons.delete : Icons.add,
-        color: Colors.white,
+  Widget buildDismissibleActivity(Activity activity, bool isActive) {
+    return Dismissible(
+      key: Key(activity.title + (isActive ? 'active' : 'deleted')),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: isActive ? Colors.red : Colors.green,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Icon(
+          isActive ? Icons.delete : Icons.add,
+          color: Colors.white,
+        ),
       ),
-    ),
-    onDismissed: (direction) async {
-      setState(() {
+      onDismissed: (direction) async {
         if (isActive) {
-          // Remover de actividades activas
-          activities.remove(activity);
-          // Agregar a actividades eliminadas
-          deletedActivities.add(activity);
+          await deleteActivity(activity); // Eliminar actividad si está activa
         } else {
-          // Remover de actividades eliminadas
-          deletedActivities.remove(activity);
-          // Agregar a actividades activas
-          activities.add(activity);
+          await saveActivity(activity, ''); // Agregar actividad eliminada
         }
-      });
-
-      // Ejecutar la acción después de modificar las listas
-      if (isActive) {
-        await deleteActivity(activity);
-      } else {
-        await saveActivity(
-            activity, activityData[activity.title]?.join(';') ?? '');
-      }
-    },
-    child: GestureDetector(
-      onTap: () {
-        openActivityDetails(activity); // Abre el diálogo según la actividad
       },
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8.0),
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 5,
-              offset: Offset(0, 2),
+      child: GestureDetector(
+        onTap: () {
+          if (activity.title == 'Sleep') {
+            showSleepDialog();
+          } else if (activity.title == 'Yoga') {
+            showYogaDialog();
+          } else if (activity.title == 'Running') {
+            showRunningDialog();
+          } else if (activity.title == 'Handwashing') {
+            showHandwashingDialog();
+          } else if (activity.title == 'Heart') {
+            showHeartDialog();
+          } else if (activity.title == 'Medications') {
+            showMedicationsDialog();
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          padding: const EdgeInsets.all(12.0),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 5,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundImage: AssetImage(activity.imagePath),
+              radius: 31,
             ),
-          ],
-        ),
-        child: ListTile(
-          leading: CircleAvatar(
-            backgroundImage: AssetImage(activity.imagePath),
-            radius: 31,
-          ),
-          title: Text(activity.title),
-          subtitle: Text(
-            activity.subtitle,
-            style: const TextStyle(color: Colors.grey),
-          ),
-          trailing: Icon(
-            Icons.circle,
-            color: isActive ? Colors.red : Colors.green,
-            size: 12,
+            title: Text(activity.title),
+            subtitle: Text(
+              activity.subtitle,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            trailing: Icon(
+              Icons.circle,
+              color: isActive ? Colors.red : Colors.green,
+              size: 12,
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
-
-
-void openActivityDetails(Activity activity) {
-  if (activity.title == 'Sleep') {
-    showSleepDialog();
-  } else if (activity.title == 'Yoga') {
-    showYogaDialog();
-  } else if (activity.title == 'Running') {
-    showRunningDialog();
-  } else if (activity.title == 'Handwashing') {
-    showHandwashingDialog();
-  } else if (activity.title == 'Heart') {
-    showHeartDialog();
-  } else if (activity.title == 'Medications') {
-    showMedicationsDialog();
-  }
-}
-
-
-  // Diálogo de Medications
-  void showMedicationsDialog() {
-    final nameController = TextEditingController();
-    final quantityController = TextEditingController();
-    String selectedUnit = 'mg';
-    String customUnit = '';
-
-    List<String> medicationsEntries = activityData['Medications'] ?? [];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return AlertDialog(
-              title: Text('Add Medications Data'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(labelText: 'Medication Name'),
-                    ),
-                    TextField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'Quantity'),
-                    ),
-                    DropdownButton<String>(
-                      value: selectedUnit,
-                      items:
-                          ['mg', 'g', 'ml', 'mm', 'others'].map((String unit) {
-                        return DropdownMenuItem<String>(
-                          value: unit,
-                          child: Text(unit),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedUnit = newValue!;
-                          if (selectedUnit != 'others') {
-                            customUnit = '';
-                          }
-                        });
-                      },
-                    ),
-                    if (selectedUnit == 'others')
-                      TextField(
-                        onChanged: (value) {
-                          customUnit = value;
-                        },
-                        decoration: InputDecoration(labelText: 'Custom Unit'),
-                      ),
-                    SizedBox(
-                      height: 150,
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: medicationsEntries.map((entry) {
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(entry),
-                              IconButton(
-                                icon: Icon(Icons.delete),
-                                onPressed: () {
-                                  setState(() {
-                                    medicationsEntries.remove(entry);
-                                    activityData['Medications'] =
-                                        medicationsEntries;
-                                  });
-                                },
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    final name = nameController.text;
-                    final quantity = quantityController.text;
-                    if (name.isNotEmpty || quantity.isNotEmpty) {
-                      setState(() {
-                        String entry =
-                            '$name: ${quantity.isNotEmpty ? quantity + (customUnit.isNotEmpty ? customUnit : selectedUnit) : ""}';
-                        medicationsEntries.add(entry);
-                        activityData['Medications'] = medicationsEntries;
-                      });
-
-                      // Guardar los datos reales
-                      String dataToSave = medicationsEntries.join(';');
-                      saveActivity(
-                          Activity('Medications', 'Health',
-                              'assets/imagenes/Medications.jpg'),
-                          dataToSave);
-                    }
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Add'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Close'),
-                ),
-              ],
-            );
-          },
-        );
-      },
     );
   }
 
-  // Diálogo de Sleep
+  // Implementación de los diálogos para cada actividad (Sleep, Yoga, etc.)
+
   void showSleepDialog() {
     final hoursController = TextEditingController();
     final minutesController = TextEditingController();
@@ -474,27 +253,35 @@ void openActivityDetails(Activity activity) {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(labelText: 'Minutes'),
                 ),
-                SizedBox(
-                  height: 150,
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: sleepEntries.map((entry) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(entry),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () {
-                              setState(() {
-                                sleepEntries.remove(entry);
-                                activityData['Sleep'] = sleepEntries;
-                              });
-                            },
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                Container(
+                  margin: const EdgeInsets.only(top: 16.0),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('Sleep Entries:',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      ...sleepEntries.map((entry) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(entry),
+                            IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                setState(() {
+                                  sleepEntries.remove(entry);
+                                  activityData['Sleep'] = sleepEntries;
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ],
                   ),
                 ),
               ],
@@ -513,7 +300,7 @@ void openActivityDetails(Activity activity) {
                     activityData['Sleep'] = sleepEntries;
                   });
 
-                  // Guardar los datos reales
+                  // Guardar los datos reales en la base de datos
                   String dataToSave = sleepEntries.join(';');
                   saveActivity(
                       Activity('Sleep', 'Health', 'assets/imagenes/Sleep.jpg'),
@@ -577,27 +364,35 @@ void openActivityDetails(Activity activity) {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(labelText: 'Minutes'),
                     ),
-                    SizedBox(
-                      height: 150,
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: yogaEntries.map((entry) {
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(entry),
-                              IconButton(
-                                icon: Icon(Icons.delete),
-                                onPressed: () {
-                                  setState(() {
-                                    yogaEntries.remove(entry);
-                                    activityData['Yoga'] = yogaEntries;
-                                  });
-                                },
-                              ),
-                            ],
-                          );
-                        }).toList(),
+                    Container(
+                      margin: const EdgeInsets.only(top: 16.0),
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text('Yoga Entries:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          ...yogaEntries.map((entry) {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(entry),
+                                IconButton(
+                                  icon: Icon(Icons.delete),
+                                  onPressed: () {
+                                    setState(() {
+                                      yogaEntries.remove(entry);
+                                      activityData['Yoga'] = yogaEntries;
+                                    });
+                                  },
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ],
                       ),
                     ),
                   ],
@@ -616,11 +411,11 @@ void openActivityDetails(Activity activity) {
                         activityData['Yoga'] = yogaEntries;
                       });
 
-                      // Guardar los datos reales
+                      // Guardar los datos reales en la base de datos
                       String dataToSave = yogaEntries.join(';');
                       saveActivity(
                           Activity(
-                              'Yoga', 'Sports', 'assets/imagenes/Yoga.jpg'),
+                              'Yoga', 'Health', 'assets/imagenes/Yoga.jpg'),
                           dataToSave);
                     }
                     Navigator.of(context).pop();
@@ -665,27 +460,35 @@ void openActivityDetails(Activity activity) {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(labelText: 'Time (hours)'),
                 ),
-                SizedBox(
-                  height: 150,
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: runningEntries.map((entry) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(entry),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () {
-                              setState(() {
-                                runningEntries.remove(entry);
-                                activityData['Running'] = runningEntries;
-                              });
-                            },
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                Container(
+                  margin: const EdgeInsets.only(top: 16.0),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('Running Entries:',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      ...runningEntries.map((entry) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(entry),
+                            IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                setState(() {
+                                  runningEntries.remove(entry);
+                                  activityData['Running'] = runningEntries;
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ],
                   ),
                 ),
               ],
@@ -704,11 +507,11 @@ void openActivityDetails(Activity activity) {
                     activityData['Running'] = runningEntries;
                   });
 
-                  // Guardar los datos reales
+                  // Guardar los datos reales en la base de datos
                   String dataToSave = runningEntries.join(';');
                   saveActivity(
                       Activity(
-                          'Running', 'Sports', 'assets/imagenes/Running.jpg'),
+                          'Running', 'Health', 'assets/imagenes/Running.jpg'),
                       dataToSave);
                 }
                 Navigator.of(context).pop();
@@ -745,28 +548,36 @@ void openActivityDetails(Activity activity) {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(labelText: 'Seconds'),
                 ),
-                SizedBox(
-                  height: 150,
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: handwashingEntries.map((entry) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(entry),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () {
-                              setState(() {
-                                handwashingEntries.remove(entry);
-                                activityData['Handwashing'] =
-                                    handwashingEntries;
-                              });
-                            },
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                Container(
+                  margin: const EdgeInsets.only(top: 16.0),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('Handwashing Entries:',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      ...handwashingEntries.map((entry) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(entry),
+                            IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                setState(() {
+                                  handwashingEntries.remove(entry);
+                                  activityData['Handwashing'] =
+                                      handwashingEntries;
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ],
                   ),
                 ),
               ],
@@ -783,7 +594,7 @@ void openActivityDetails(Activity activity) {
                     activityData['Handwashing'] = handwashingEntries;
                   });
 
-                  // Guardar los datos reales
+                  // Guardar los datos reales en la base de datos
                   String dataToSave = handwashingEntries.join(';');
                   saveActivity(
                       Activity('Handwashing', 'Health',
@@ -835,27 +646,35 @@ void openActivityDetails(Activity activity) {
                   controller: timeController,
                   decoration: InputDecoration(labelText: 'Time (HH:mm)'),
                 ),
-                SizedBox(
-                  height: 150,
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: heartEntries.map((entry) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(entry),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () {
-                              setState(() {
-                                heartEntries.remove(entry);
-                                activityData['Heart'] = heartEntries;
-                              });
-                            },
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                Container(
+                  margin: const EdgeInsets.only(top: 16.0),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('Heart Entries:',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      ...heartEntries.map((entry) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(entry),
+                            IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                setState(() {
+                                  heartEntries.remove(entry);
+                                  activityData['Heart'] = heartEntries;
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ],
                   ),
                 ),
               ],
@@ -877,7 +696,7 @@ void openActivityDetails(Activity activity) {
                     activityData['Heart'] = heartEntries;
                   });
 
-                  // Guardar los datos reales
+                  // Guardar los datos reales en la base de datos
                   String dataToSave = heartEntries.join(';');
                   saveActivity(
                       Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
@@ -894,6 +713,133 @@ void openActivityDetails(Activity activity) {
               child: Text('Close'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void showMedicationsDialog() {
+    final nameController = TextEditingController();
+    final quantityController = TextEditingController();
+    String selectedUnit = 'mg';
+    String customUnit = '';
+
+    // Obtener los datos de medicamentos solo para la fecha seleccionada
+    List<String> medicationsEntries = activityData['Medications'] ?? [];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Add Medications Data'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(labelText: 'Medication Name'),
+                    ),
+                    TextField(
+                      controller: quantityController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Quantity'),
+                    ),
+                    DropdownButton<String>(
+                      value: selectedUnit,
+                      items:
+                          ['mg', 'g', 'ml', 'mm', 'others'].map((String unit) {
+                        return DropdownMenuItem<String>(
+                          value: unit,
+                          child: Text(unit),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedUnit = newValue!;
+                          if (selectedUnit != 'others') {
+                            customUnit = '';
+                          }
+                        });
+                      },
+                    ),
+                    if (selectedUnit == 'others')
+                      TextField(
+                        onChanged: (value) {
+                          customUnit = value;
+                        },
+                        decoration: InputDecoration(labelText: 'Custom Unit'),
+                      ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 16.0),
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text('Medications Entries:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          ...medicationsEntries.map((entry) {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(entry),
+                                IconButton(
+                                  icon: Icon(Icons.delete),
+                                  onPressed: () {
+                                    setState(() {
+                                      medicationsEntries.remove(entry);
+                                      activityData['Medications'] =
+                                          medicationsEntries;
+                                    });
+                                  },
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    final name = nameController.text;
+                    final quantity = quantityController.text;
+                    if (name.isNotEmpty || quantity.isNotEmpty) {
+                      setState(() {
+                        String entry =
+                            '$name: ${quantity.isNotEmpty ? quantity + (customUnit.isNotEmpty ? customUnit : selectedUnit) : ""}';
+                        medicationsEntries.add(entry);
+                        activityData['Medications'] = medicationsEntries;
+                      });
+
+                      // Guardar los datos reales en la base de datos
+                      String dataToSave = medicationsEntries.join(';');
+                      saveActivity(
+                          Activity('Medications', 'Health',
+                              'assets/imagenes/Medications.jpg'),
+                          dataToSave);
+                    }
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Add'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Close'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
