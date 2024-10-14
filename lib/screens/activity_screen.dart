@@ -6,13 +6,16 @@ class ActivityScreen extends StatefulWidget {
   final int userId;
   final DateTime dateSelected;
 
-  ActivityScreen({required this.userId, required this.dateSelected});
+  ActivityScreen({required this.userId, required this.dateSelected}) {
+    print('Constructor: dateSelected is $dateSelected');
+  }
 
   @override
   _ActivityScreenState createState() => _ActivityScreenState();
 }
 
 class _ActivityScreenState extends State<ActivityScreen> {
+  late DateTime selectedDate;
   List<Activity> activities = [];
   List<Activity> deletedActivities = [
     Activity('Medications', 'Health', 'assets/imagenes/Medications.jpg'),
@@ -28,37 +31,117 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   void initState() {
     super.initState();
-    loadActivitiesForDate(); // Cargar actividades de la base de datos al iniciar
+    selectedDate = widget.dateSelected; // Asigna la fecha seleccionada
+    loadActivitiesForDate();
+    loadDeletedActivities(); // Cargar actividades eliminadas
   }
 
+  @override
+  void didUpdateWidget(ActivityScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Solo actualizar si la fecha seleccionada cambió
+    if (oldWidget.dateSelected != widget.dateSelected) {
+      setState(() {
+        selectedDate = widget.dateSelected;
+        loadActivitiesForDate(); // Cargar actividades para la nueva fecha
+      });
+    }
+  }
+
+  // Cargar las actividades activas
   Future<void> loadActivitiesForDate() async {
-    // Cargar las actividades de la base de datos para la fecha y usuario seleccionados
+    // Limpiar los datos antes de cargar nuevas actividades
+    setState(() {
+      activityData = {
+        'Medications': [],
+        'Sleep': [],
+        'Yoga': [],
+        'Running': [],
+        'Handwashing': [],
+        'Heart': [],
+      };
+    });
+
+    // Ahora cargar las actividades de la base de datos para la fecha seleccionada
     List<Map<String, dynamic>> result =
-        await DBHelper.getActivitiesForDate(widget.userId, widget.dateSelected);
+        await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
 
     setState(() {
+      Map<String, List<String>> mutableActivityData =
+          Map<String, List<String>>.from(activityData);
+
+      // Limpiar la lista de actividades antes de cargar nuevas
       activities.clear();
-      activityData.clear();
-      for (var row in result) {
-        String title = row['title'];
-        String data = row['data'];
-        activityData[title] = data.split(';'); // Guardar los datos en el mapa
-        activities.add(Activity(title, 'Health', 'assets/imagenes/$title.jpg'));
-      }
+
+      activities = result.map((activityData) {
+        String? activityTitle = activityData['title'] as String?;
+        String? activityContent = activityData['data']?.toString();
+
+        if (activityTitle != null && activityTitle.isNotEmpty) {
+          if (activityContent != null && activityContent.isNotEmpty) {
+            mutableActivityData[activityTitle] =
+                List<String>.from(activityContent.split(';'));
+          }
+
+          return Activity(
+            activityTitle,
+            'Health', // Puedes manejar el subtítulo como desees
+            'assets/imagenes/$activityTitle.jpg',
+          );
+        } else {
+          return Activity(
+            'Unknown Activity',
+            'Health',
+            'assets/imagenes/default.jpg',
+          );
+        }
+      }).toList();
+
+      activityData = mutableActivityData;
+    });
+
+    // Asegúrate de que las actividades eliminadas estén actualizadas
+    loadDeletedActivities();
+  }
+
+  // Cargar las actividades eliminadas (More Activities)
+  Future<void> loadDeletedActivities() async {
+    List<String> allActivityTitles = [
+      'Medications',
+      'Sleep',
+      'Yoga',
+      'Running',
+      'Handwashing',
+      'Heart'
+    ];
+    List<String> activeActivityTitles =
+        activities.map((activity) => activity.title).toList();
+
+    setState(() {
+      // Limpiar la lista de actividades eliminadas antes de cargar nuevas
+      deletedActivities.clear();
+
+      // Filtrar actividades que no estén activas
+      deletedActivities = allActivityTitles
+          .where((title) => !activeActivityTitles.contains(title))
+          .map((title) =>
+              Activity(title, 'Health', 'assets/imagenes/$title.jpg'))
+          .toList();
     });
   }
 
   Future<void> saveActivity(Activity activity, String data) async {
     // Guardar actividad en la base de datos
     await DBHelper.saveActivityForDate(
-        widget.userId, activity.title, data, widget.dateSelected);
+        widget.userId, activity.title, data, selectedDate);
     loadActivitiesForDate(); // Recargar las actividades actualizadas
   }
 
   Future<void> deleteActivity(Activity activity) async {
     // Eliminar actividad de la base de datos
     await DBHelper.deleteActivityForUser(
-        widget.userId, activity.title, widget.dateSelected);
+        widget.userId, activity.title, selectedDate);
     loadActivitiesForDate(); // Recargar las actividades actualizadas
   }
 
@@ -112,29 +195,33 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   Widget buildCalendar() {
-    final today = DateTime.now();
     final days = List.generate(7, (index) {
-      final day = today.subtract(Duration(days: today.weekday - 1 - index));
+      final day = selectedDate
+          .subtract(Duration(days: selectedDate.weekday - 1 - index));
       return Column(
         children: [
           Text(DateFormat.E().format(day)),
           Container(
             decoration: BoxDecoration(
-              color: day.day == today.day ? Colors.orange : Colors.transparent,
+              color: day.day == selectedDate.day
+                  ? Colors.orange
+                  : Colors.transparent,
               shape: BoxShape.circle,
             ),
             padding: const EdgeInsets.all(8),
             child: Text(
               day.day.toString(),
               style: TextStyle(
-                fontWeight:
-                    day.day == today.day ? FontWeight.bold : FontWeight.normal,
+                fontWeight: day.day == selectedDate.day
+                    ? FontWeight.bold
+                    : FontWeight.normal,
               ),
             ),
           ),
         ],
       );
     });
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -158,6 +245,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
         ),
       ),
       onDismissed: (direction) async {
+        setState(() {
+          if (isActive) {
+            activities.remove(activity);
+            deletedActivities.add(activity);
+          } else {
+            deletedActivities.remove(activity);
+            activities.add(activity);
+          }
+        });
+
         if (isActive) {
           await deleteActivity(activity); // Eliminar actividad si está activa
         } else {
@@ -642,26 +739,42 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment
+                        .start, // Alinea el texto a la izquierda
                     children: [
                       const Text('Heart Entries:',
                           style: TextStyle(fontWeight: FontWeight.bold)),
-                      ...heartEntries.map((entry) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(entry),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  heartEntries.remove(entry);
-                                  activityData['Heart'] = heartEntries;
-                                });
-                              },
-                            ),
-                          ],
-                        );
-                      }).toList(),
+                      SizedBox(
+                        height: 150, // Limita la altura del list view
+                        child: ListView(
+                          shrinkWrap:
+                              true, // Evita que el ListView tome todo el espacio
+                          children: heartEntries.map((entry) {
+                            return SingleChildScrollView(
+                              scrollDirection: Axis
+                                  .horizontal, // Permite el scroll horizontal
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    entry, // Muestra la entrada completa sin truncar
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    onPressed: () {
+                                      setState(() {
+                                        heartEntries.remove(entry);
+                                        activityData['Heart'] = heartEntries;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
                     ],
                   ),
                 ),

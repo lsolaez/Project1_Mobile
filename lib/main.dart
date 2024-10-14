@@ -8,7 +8,6 @@ void main() async {
   // Asegura que los bindings de Flutter estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
   //await DBHelper.deleteDatabase();
-  //await DBHelper.registerUser('Leonardo Solaez','leo@gmail.com', '3244672366', 'Male', 21, '1041');
   // Corre la aplicación
   runApp(const MyApp());
 }
