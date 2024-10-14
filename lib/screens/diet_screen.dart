@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:project1/Controllers/dietController.dart';
 import 'package:project1/Controllers/hydration_controller.dart';
 import 'package:project1/screens/activity_screen.dart';
+import 'package:project1/screens/edit_profile_screen.dart';
 import 'package:project1/screens/hydration_screen.dart';
+import 'package:project1/screens/streak_screen.dart';
 import 'package:project1/widgets/ConsumptionDialog.dart';
 import 'package:project1/widgets/GoalSettingDialog.dart';
 import 'recipes_.dart';
@@ -30,6 +32,9 @@ class _DietScreenState extends State<DietScreen> {
   late DietController dietController;
   final ScrollController _scrollController =
       ScrollController(); // Controlador para el ListView
+  final GlobalKey _profileKey =
+      GlobalKey(); // Key para obtener la posición del avatar
+  OverlayEntry? _overlayEntry;
 
   final List<String> _titles = [
     'Progress',
@@ -43,7 +48,6 @@ class _DietScreenState extends State<DietScreen> {
   @override
   void initState() {
     super.initState();
-    // Inicializa el controlador pasándole el userId con Get.put
     dietController = Get.put(DietController(userId: widget.userId));
     dietController.loadProgressForDate(selectedDate);
     // Al iniciar, desplazar la lista para que el día actual quede centrado
@@ -62,6 +66,110 @@ class _DietScreenState extends State<DietScreen> {
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeInOut,
     );
+  }
+
+  // Método para mostrar el cuadro emergente debajo del avatar
+  void _showProfilePopup() {
+    final RenderBox renderBox =
+        _profileKey.currentContext!.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => GestureDetector(
+        behavior:
+            HitTestBehavior.translucent, // Detecta toques fuera del cuadro
+        onTap: _hideOverlay, // Ocultar si se toca fuera del cuadro
+        child: Stack(
+          children: [
+            Positioned(
+              top: offset.dy +
+                  size.height +
+                  10, // Posición justo debajo del avatar
+              left: (screenWidth / 2), // Centrado con el avatar
+              child: Material(
+                color: Colors.transparent,
+                child: GestureDetector(
+                  onTap:
+                      () {}, // Prevenir que el cuadro se cierre al tocar dentro de él
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 200,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircleAvatar(
+                              radius: 40,
+                              backgroundImage:
+                                  AssetImage('assets/imagenes/profile_pic.png'),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              widget.userName,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 10),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                _hideOverlay();
+                                // Navegar a la pantalla de Editar Perfil
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditProfileScreen(
+                                        userId: widget.userId),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.edit),
+                              label: const Text('Edit Profile'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    const Color.fromARGB(255, 255, 173, 173),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        top: -10,
+                        left: 80,
+                        child: CustomPaint(
+                          painter: TrianglePainter(
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 
   // Aquí se pasa el `selectedDate` a las pantallas correspondientes
@@ -234,6 +342,45 @@ class _DietScreenState extends State<DietScreen> {
     );
   }
 
+  void _showGoalSettingDialog(DateTime selectedDate) {
+    DateTime today = DateTime.now();
+
+    // Comparar solo el día, mes y año, ignorando la hora
+    if (selectedDate.isBefore(DateTime(today.year, today.month, today.day))) {
+      _showPastDateWarning(); // Mostrar alerta si el día es pasado
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return GoalSettingDialog(
+            dietController: dietController,
+            selectedDate: selectedDate,
+          );
+        },
+      );
+    }
+  }
+
+  void _showPastDateWarning() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Warning'),
+          content: const Text('You cannot adjust goals for past days.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cierra el diálogo
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -261,29 +408,29 @@ class _DietScreenState extends State<DietScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.assignment),
-              title: const Text('Activities'),
+              leading: const Icon(Icons.store),
+              title: const Text('Exchange store'),
               onTap: () {
                 Navigator.pop(context); // Cerrar el Drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => StreakScreen(
+                            userName: widget.userName,
+                            userId: widget.userId,
+                          )), // Navegar a la página de destino
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.update),
               title: const Text('Update Goals'),
               onTap: () {
-                Navigator.pop(context); // Cerrar el Drawer
-                // Abrir el diálogo de actualización de metas
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return GoalSettingDialog(
-                      dietController: dietController,
-                      selectedDate: selectedDate,
-                    );
-                  },
-                );
+                // Llamar a la función con validación
+                _showGoalSettingDialog(selectedDate);
               },
             ),
+
             const Divider(), // Separador
             ListTile(
               leading: const Icon(Icons.exit_to_app),
@@ -317,6 +464,15 @@ class _DietScreenState extends State<DietScreen> {
             ),
           ),
         ),
+        actions: [
+          GestureDetector(
+            key: _profileKey, // Asignar la key al avatar
+            onTap: _showProfilePopup, // Mostrar el cuadro emergente al tocar
+            child: const CircleAvatar(
+              backgroundImage: AssetImage('assets/imagenes/profile_pic.png'),
+            ),
+          ),
+        ],
       ),
       body: IndexedStack(
         index: _selectedIndex,
@@ -353,7 +509,6 @@ class _DietScreenState extends State<DietScreen> {
   }
 
   // Método para manejar la navegación según el índice seleccionado
-// Método para manejar la navegación según el índice seleccionado
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -413,5 +568,30 @@ class _DietScreenState extends State<DietScreen> {
         ),
       ),
     );
+  }
+}
+
+// Pintor personalizado para el triángulo que apunta hacia la imagen de perfil
+class TrianglePainter extends CustomPainter {
+  final Color color;
+
+  TrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    var paint = Paint()..color = color;
+    var path = Path();
+
+    path.moveTo(0, 0);
+    path.lineTo(20, 0);
+    path.lineTo(10, 10);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return false;
   }
 }

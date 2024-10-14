@@ -11,15 +11,29 @@ class DBHelper {
         // Crear tabla de usuarios
         await db.execute('''
           CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            fullName TEXT,
-            email TEXT,
-            phone TEXT,
-            sex TEXT,
-            age INTEGER,
-            password TEXT
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          fullName TEXT,
+          email TEXT,
+          phone TEXT,
+          sex TEXT,
+          age INTEGER,
+          password TEXT,
+          profileImage TEXT default 'assets/imagenes/profile_pic.png',
+          credits INTEGER DEFAULT 0,
+          ultimoDiaCreditoDieta TEXT,
+          ultimoDiaCreditoAgua TEXT
+        )
+        ''');
+        // Agregar tabla de premios canjeados
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS claimed_rewards (
+            userId INTEGER,
+            rewardName TEXT,
+            PRIMARY KEY (userId, rewardName),
+            FOREIGN KEY (userId) REFERENCES users(id)
           )
         ''');
+
 
         // Crear las tablas de progreso y metas
         await db.execute('''
@@ -80,7 +94,7 @@ class DBHelper {
           )
         ''');
       },
-      version: 6,
+      version: 7,
     );
   }
 
@@ -108,6 +122,174 @@ class DBHelper {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
+
+static Future<DateTime?> getUltimoDiaCreditoDieta(int userId) async {
+  final db = await database;
+  var result = await db.query(
+    'users',
+    columns: ['ultimoDiaCreditoDieta'],
+    where: 'id = ?',
+    whereArgs: [userId],
+  );
+
+  if (result.isNotEmpty && result.first['ultimoDiaCreditoDieta'] != null) {
+    final ultimoDiaCreditoStr = result.first['ultimoDiaCreditoDieta']?.toString();
+    return DateTime.parse(ultimoDiaCreditoStr!); // Aseguramos que no sea nulo
+  }
+
+  return null;
+}
+
+static Future<DateTime?> getUltimoDiaCreditoAgua(int userId) async {
+  final db = await database;
+  var result = await db.query(
+    'users',
+    columns: ['ultimoDiaCreditoAgua'],
+    where: 'id = ?',
+    whereArgs: [userId],
+  );
+
+  if (result.isNotEmpty && result.first['ultimoDiaCreditoAgua'] != null) {
+    final ultimoDiaCreditoStr = result.first['ultimoDiaCreditoAgua']?.toString();
+    return DateTime.parse(ultimoDiaCreditoStr!); // Aseguramos que no sea nulo
+  }
+
+  return null;
+}
+
+
+static Future<void> setUltimoDiaCreditoDieta(int userId, DateTime date) async {
+  final db = await database;
+  await db.update(
+    'users',
+    {'ultimoDiaCreditoDieta': DateFormat('yyyy-MM-dd').format(date)},
+    where: 'id = ?',
+    whereArgs: [userId],
+  );
+}
+
+static Future<void> setUltimoDiaCreditoAgua(int userId, DateTime date) async {
+  final db = await database;
+  await db.update(
+    'users',
+    {'ultimoDiaCreditoAgua': DateFormat('yyyy-MM-dd').format(date)},
+    where: 'id = ?',
+    whereArgs: [userId],
+  );
+}
+
+
+  // Método para verificar si el usuario cumplió sus metas en una fecha
+  static Future<bool> cumplioMetasParaFecha(int userId, DateTime date) async {
+    final db = await database;
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    var result = await db.query(
+      'progress',
+      where: 'id = ? AND date = ?',
+      whereArgs: [userId, formattedDate],
+    );
+
+    if (result.isNotEmpty) {
+      return true; // Si se encontraron resultados, metas cumplidas
+    }
+    return false; // Si no, metas no cumplidas
+  }
+
+  static Future<Map<String, dynamic>?> getUserData(int userId) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
+  // Actualizar la información del perfil del usuario (sin cambiar la imagen)
+  static Future<void> updateUserProfile(
+    int userId,
+    String fullName,
+    String email,
+    String phone,
+    String sex,
+    int age,
+  ) async {
+    final db = await database;
+    await db.update(
+      'users',
+      {
+        'fullName': fullName,
+        'email': email,
+        'phone': phone,
+        'sex': sex,
+        'age': age,
+      },
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+  }
+
+  // Método para obtener los créditos actuales de un usuario
+  static Future<int> getCreditsForUser(int userId) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      columns: ['credits'],
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+    if (result.isNotEmpty) {
+      return result.first['credits'];
+    } else {
+      return 0; // Si no se encuentra, devolvemos 0 créditos
+    }
+  }
+
+  // Método para actualizar los créditos de un usuario
+  static Future<void> updateCreditsForUser(int userId, int credits) async {
+    final db = await database;
+    await db.update(
+      'users',
+      {'credits': credits},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+  }
+
+  // Método para registrar un canje de premio
+ static Future<void> redeemReward(int userId, String rewardName) async {
+  final db = await database;
+
+  // Insertar el premio reclamado en la tabla claimed_rewards
+  await db.insert(
+    'claimed_rewards',
+    {
+      'userId': userId,
+      'rewardName': rewardName,
+    },
+    conflictAlgorithm: ConflictAlgorithm.replace, // Evitar duplicados
+  );
+}
+
+static Future<bool> isRewardClaimed(int userId, String rewardName) async {
+  final db = await database;
+
+  final List<Map<String, dynamic>> result = await db.query(
+    'claimed_rewards',
+    where: 'userId = ? AND rewardName = ?',
+    whereArgs: [userId, rewardName],
+  );
+
+  return result.isNotEmpty; // Devuelve true si el premio ya fue reclamado
+}
+
+
 
   // Método para verificar el inicio de sesión
   static Future<Map<String, dynamic>?> loginUser(
@@ -194,19 +376,23 @@ class DBHelper {
 
   // Obtener metas de una fecha específica para un usuario
   static Future<Map<String, dynamic>?> getGoalsForDate(
-      int id, DateTime date) async {
+      int userId, DateTime date) async {
     final db = await database;
-    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    String formattedDate = DateFormat('yyyy-MM-dd')
+        .format(date); // Asegura que el formato de la fecha coincida
 
+    // Consulta a la tabla 'goals' para obtener las metas del día y el usuario
     List<Map<String, dynamic>> result = await db.query(
-      'goals',
-      where: 'id = ? AND date = ?',
-      whereArgs: [id, formattedDate],
+      'goals', // Asegúrate de que este sea el nombre correcto de tu tabla de metas
+      where: 'Id = ? AND date = ?', // Cambia los campos según tu esquema
+      whereArgs: [userId, formattedDate], // Pasa los argumentos correctos
     );
 
     if (result.isNotEmpty) {
-      return result.first;
+      print("Metas encontradas para la fecha $formattedDate: ${result.first}");
+      return result.first; // Devuelve el primer resultado
     } else {
+      print("No se encontraron metas para la fecha $formattedDate");
       return null;
     }
   }

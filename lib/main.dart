@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+//import 'package:project1/Helpers/db_helper.dart';
 import 'package:project1/screens/login.dart';
 
 import 'screens/get_started.dart';
@@ -6,6 +7,8 @@ import 'screens/get_started.dart';
 void main() async {
   // Asegura que los bindings de Flutter estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
+  //await DBHelper.deleteDatabase();
+  //await DBHelper.registerUser('Leonardo Solaez','leo@gmail.com', '3244672366', 'Male', 21, '1041');
   // Corre la aplicación
   runApp(const MyApp());
 }
