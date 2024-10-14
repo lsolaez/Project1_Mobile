@@ -702,7 +702,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
- void showHeartDialog() {
+void showHeartDialog() {
   final systolicController = TextEditingController();
   final diastolicController = TextEditingController();
   final timeController = TextEditingController();
@@ -711,83 +711,89 @@ class _ActivityScreenState extends State<ActivityScreen> {
   showDialog(
     context: context,
     builder: (context) {
-      return StatefulBuilder( // Usamos StatefulBuilder para actualizar el estado del diálogo en tiempo real
+      return StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
             title: Text('Add Heart Data'),
             content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: systolicController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: 'Systolic (mmHg)'),
-                  ),
-                  TextField(
-                    controller: diastolicController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: 'Diastolic (mmHg)'),
-                  ),
-                  TextField(
-                    controller: timeController,
-                    decoration: InputDecoration(labelText: 'Time (HH:mm)'),
-                  ),
-                  const SizedBox(height: 16.0),
-                  Container(
-                    margin: const EdgeInsets.only(top: 16.0),
-                    padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.9, // Ajusta el ancho del diálogo
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: systolicController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Systolic (mmHg)'),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, // Alinea el texto a la izquierda
-                      children: [
-                        const Text(
-                          'Heart Entries:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        if (heartEntries.isNotEmpty)
-                          SizedBox(
-                            height: 150, // Altura fija para la lista de entradas
-                            child: ListView.builder(
-                              itemCount: heartEntries.length,
-                              itemBuilder: (context, index) {
-                                return SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal, // Scroll horizontal
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(heartEntries[index]),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete),
-                                        onPressed: () {
-                                          setState(() {
-                                            heartEntries.removeAt(index);
-                                            activityData['Heart'] = heartEntries;
+                    TextField(
+                      controller: diastolicController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Diastolic (mmHg)'),
+                    ),
+                    TextField(
+                      controller: timeController,
+                      decoration: InputDecoration(labelText: 'Time (HH:mm)'),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Container(
+                      margin: const EdgeInsets.only(top: 16.0),
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Heart Entries:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          if (heartEntries.isNotEmpty)
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight: 150, // Altura máxima para la lista
+                              ),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: heartEntries.length,
+                                itemBuilder: (context, index) {
+                                  return SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal, // Scroll horizontal
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(heartEntries[index]),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete),
+                                          onPressed: () {
+                                            setState(() {
+                                              heartEntries.removeAt(index);
+                                              activityData['Heart'] = heartEntries;
 
-                                            // Guardar los cambios en la base de datos
-                                            String dataToSave = heartEntries.join(';');
-                                            saveActivity(
-                                              Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
-                                              dataToSave,
-                                            );
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          )
-                        else
-                          const SizedBox(), // Si no hay entradas, no mostrar nada
-                      ],
+                                              // Guardar los cambios en la base de datos
+                                              String dataToSave = heartEntries.join(';');
+                                              saveActivity(
+                                                Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
+                                                dataToSave,
+                                              );
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          else
+                            const SizedBox(), // Si no hay entradas, no mostrar nada
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -829,6 +835,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
     },
   );
 }
+
+
 
 
   void showMedicationsDialog() {
