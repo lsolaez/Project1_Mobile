@@ -65,18 +65,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFF9A8B),
-        elevation: 0,
-        title: const Text(
-          'Activities',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 28,
-          ),
-        ),
-        centerTitle: true,
-      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
