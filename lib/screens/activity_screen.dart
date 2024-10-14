@@ -146,54 +146,56 @@ class _ActivityScreenState extends State<ActivityScreen> {
     loadDeletedActivities();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFF9A8B), Color(0xFFF3ECEF)],
-          ),
-        ),
-        child: Column(
-          children: [
-            buildCalendar(),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(8.0),
-                children: [
-                  const Divider(),
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      'Available Activities',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  ...activities.map((activity) {
-                    return buildDismissibleActivity(activity, true);
-                  }).toList(),
-                  const Divider(),
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      'More Activities',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  ...deletedActivities.map((activity) {
-                    return buildDismissibleActivity(activity, false);
-                  }).toList(),
-                ],
-              ),
-            ),
-          ],
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFF9A8B), Color(0xFFF3ECEF)],
         ),
       ),
-    );
-  }
+      child: Column(
+        children: [
+          buildCalendar(),
+          // Aseguramos que el ListView expanda correctamente
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(8.0),
+              children: [
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Available Activities',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                ...activities.map((activity) {
+                  return buildDismissibleActivity(activity, true);
+                }).toList(),
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'More Activities',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                ...deletedActivities.map((activity) {
+                  return buildDismissibleActivity(activity, false);
+                }).toList(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 
   Widget buildCalendar() {
     final days = List.generate(7, (index) {
