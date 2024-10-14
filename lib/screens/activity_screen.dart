@@ -15,12 +15,12 @@ class ActivityScreen extends StatefulWidget {
 class _ActivityScreenState extends State<ActivityScreen> {
   List<Activity> activities = [];
   List<Activity> deletedActivities = [
-    Activity('Medications', 'Health', 'assets/imagenes/A1.jpg'),
-    Activity('Sleep', 'Health', 'assets/imagenes/A2.jpg'),
-    Activity('Heart', 'Health', 'assets/imagenes/A3.jpg'),
-    Activity('Running', 'Sports', 'assets/imagenes/A4.jpg'),
-    Activity('Yoga', 'Sports', 'assets/imagenes/A5.jpg'),
-    Activity('Handwashing', 'Health', 'assets/imagenes/A6.jpg'),
+    Activity('Medications', 'Health', 'assets/imagenes/Medications.jpg'),
+    Activity('Sleep', 'Health', 'assets/imagenes/Sleep.jpg'),
+    Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
+    Activity('Running', 'Sports', 'assets/imagenes/Running.jpg'),
+    Activity('Yoga', 'Sports', 'assets/imagenes/Yoga.jpg'),
+    Activity('Handwashing', 'Health', 'assets/imagenes/Handwashing.jpg'),
   ];
   Map<String, List<String>> activityData =
       {}; // Para almacenar las entradas de las actividades
