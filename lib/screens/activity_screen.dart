@@ -146,56 +146,59 @@ class _ActivityScreenState extends State<ActivityScreen> {
     loadDeletedActivities();
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFFF9A8B), Color(0xFFF3ECEF)],
-        ),
-      ),
-      child: Column(
-        children: [
-          buildCalendar(),
-          // Aseguramos que el ListView expanda correctamente
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(8.0),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFF9A8B), Color(0xFFF3ECEF)],
+              ),
+            ),
+            child: Column(
               children: [
-                const Divider(),
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text(
-                    'Available Activities',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                buildCalendar(),
+                // Aseguramos que el ListView expanda correctamente
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(8.0),
+                    children: [
+                      const Divider(),
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          'Available Activities',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      ...activities.map((activity) {
+                        return buildDismissibleActivity(activity, true);
+                      }).toList(),
+                      const Divider(),
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          'More Activities',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      ...deletedActivities.map((activity) {
+                        return buildDismissibleActivity(activity, false);
+                      }).toList(),
+                    ],
                   ),
                 ),
-                ...activities.map((activity) {
-                  return buildDismissibleActivity(activity, true);
-                }).toList(),
-                const Divider(),
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text(
-                    'More Activities',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                ...deletedActivities.map((activity) {
-                  return buildDismissibleActivity(activity, false);
-                }).toList(),
               ],
             ),
-          ),
-        ],
+          );
+        },
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget buildCalendar() {
     final days = List.generate(7, (index) {
@@ -234,97 +237,98 @@ Widget build(BuildContext context) {
     );
   }
 
-  Widget buildDismissibleActivity(Activity activity, bool isActive) {
-    return Dismissible(
-      key: Key(activity.title + (isActive ? 'active' : 'deleted')),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        color: isActive ? Colors.red : Colors.green,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Icon(
-          isActive ? Icons.delete : Icons.add,
-          color: Colors.white,
-        ),
+ Widget buildDismissibleActivity(Activity activity, bool isActive) {
+  return Dismissible(
+    key: Key(activity.title + (isActive ? 'active' : 'deleted')),
+    direction: DismissDirection.endToStart,
+    background: Container(
+      color: isActive ? Colors.red : Colors.green,
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Icon(
+        isActive ? Icons.delete : Icons.add,
+        color: Colors.white,
       ),
-      onDismissed: (direction) async {
-        setState(() {
-          if (isActive) {
-            // Remover de actividades activas
-            activities.remove(activity);
-            // Agregar a actividades eliminadas
-            deletedActivities.add(activity);
-          } else {
-            // Remover de actividades eliminadas
-            deletedActivities.remove(activity);
-            // Agregar a actividades activas
-            activities.add(activity);
-          }
-        });
-
-        // Ejecutar la acción después de modificar las listas
+    ),
+    onDismissed: (direction) async {
+      setState(() {
         if (isActive) {
-          await deleteActivity(activity);
+          // Remover de actividades activas
+          activities.remove(activity);
+          // Agregar a actividades eliminadas
+          deletedActivities.add(activity);
         } else {
-          await saveActivity(
-              activity, activityData[activity.title]?.join(';') ?? '');
+          // Remover de actividades eliminadas
+          deletedActivities.remove(activity);
+          // Agregar a actividades activas
+          activities.add(activity);
         }
+      });
+
+      // Ejecutar la acción después de modificar las listas
+      if (isActive) {
+        await deleteActivity(activity);
+      } else {
+        await saveActivity(
+            activity, activityData[activity.title]?.join(';') ?? '');
+      }
+    },
+    child: GestureDetector(
+      onTap: () {
+        openActivityDetails(activity); // Abre el diálogo según la actividad
       },
-      child: GestureDetector(
-        onTap: () {
-          openActivityDetails(
-              activity); // Llamada para abrir el diálogo según la actividad
-        },
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          padding: const EdgeInsets.all(12.0),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 5,
-                offset: Offset(0, 2),
-              ),
-            ],
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8.0),
+        padding: const EdgeInsets.all(12.0),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 5,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundImage: AssetImage(activity.imagePath),
+            radius: 31,
           ),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundImage: AssetImage(activity.imagePath),
-              radius: 31,
-            ),
-            title: Text(activity.title),
-            subtitle: Text(
-              activity.subtitle,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            trailing: Icon(
-              Icons.circle,
-              color: isActive ? Colors.red : Colors.green,
-              size: 12,
-            ),
+          title: Text(activity.title),
+          subtitle: Text(
+            activity.subtitle,
+            style: const TextStyle(color: Colors.grey),
+          ),
+          trailing: Icon(
+            Icons.circle,
+            color: isActive ? Colors.red : Colors.green,
+            size: 12,
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  void openActivityDetails(Activity activity) {
-    if (activity.title == 'Sleep') {
-      showSleepDialog();
-    } else if (activity.title == 'Yoga') {
-      showYogaDialog();
-    } else if (activity.title == 'Running') {
-      showRunningDialog();
-    } else if (activity.title == 'Handwashing') {
-      showHandwashingDialog();
-    } else if (activity.title == 'Heart') {
-      showHeartDialog();
-    } else if (activity.title == 'Medications') {
-      showMedicationsDialog();
-    }
+
+void openActivityDetails(Activity activity) {
+  if (activity.title == 'Sleep') {
+    showSleepDialog();
+  } else if (activity.title == 'Yoga') {
+    showYogaDialog();
+  } else if (activity.title == 'Running') {
+    showRunningDialog();
+  } else if (activity.title == 'Handwashing') {
+    showHandwashingDialog();
+  } else if (activity.title == 'Heart') {
+    showHeartDialog();
+  } else if (activity.title == 'Medications') {
+    showMedicationsDialog();
   }
+}
+
 
   // Diálogo de Medications
   void showMedicationsDialog() {
@@ -333,7 +337,6 @@ Widget build(BuildContext context) {
     String selectedUnit = 'mg';
     String customUnit = '';
 
-    // Obtener los datos de medicamentos solo para la fecha seleccionada
     List<String> medicationsEntries = activityData['Medications'] ?? [];
 
     showDialog(
@@ -349,8 +352,7 @@ Widget build(BuildContext context) {
                   children: [
                     TextField(
                       controller: nameController,
-                      decoration:
-                          InputDecoration(labelText: 'Medication Name'),
+                      decoration: InputDecoration(labelText: 'Medication Name'),
                     ),
                     TextField(
                       controller: quantityController,
@@ -359,8 +361,8 @@ Widget build(BuildContext context) {
                     ),
                     DropdownButton<String>(
                       value: selectedUnit,
-                      items: ['mg', 'g', 'ml', 'mm', 'others']
-                          .map((String unit) {
+                      items:
+                          ['mg', 'g', 'ml', 'mm', 'others'].map((String unit) {
                         return DropdownMenuItem<String>(
                           value: unit,
                           child: Text(unit),
@@ -380,8 +382,7 @@ Widget build(BuildContext context) {
                         onChanged: (value) {
                           customUnit = value;
                         },
-                        decoration:
-                            InputDecoration(labelText: 'Custom Unit'),
+                        decoration: InputDecoration(labelText: 'Custom Unit'),
                       ),
                     SizedBox(
                       height: 150,
@@ -447,8 +448,6 @@ Widget build(BuildContext context) {
       },
     );
   }
-
-  // El resto de los diálogos se mantienen igual, pero ya cuentan con la limpieza de los datos por fecha.
 
   // Diálogo de Sleep
   void showSleepDialog() {
@@ -536,7 +535,6 @@ Widget build(BuildContext context) {
     );
   }
 
-  // Diálogo de Yoga
   void showYogaDialog() {
     final hoursController = TextEditingController();
     final minutesController = TextEditingController();
@@ -643,7 +641,6 @@ Widget build(BuildContext context) {
     );
   }
 
-  // Diálogo de Running
   void showRunningDialog() {
     final distanceController = TextEditingController();
     final hoursController = TextEditingController();
@@ -730,7 +727,6 @@ Widget build(BuildContext context) {
     );
   }
 
-  // Diálogo de Handwashing
   void showHandwashingDialog() {
     final secondsController = TextEditingController();
     List<String> handwashingEntries = activityData['Handwashing'] ?? [];
@@ -796,13 +792,13 @@ Widget build(BuildContext context) {
                 }
                 Navigator.of(context).pop();
               },
-              child: const Text('Add'),
+              child: Text('Add'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Close'),
+              child: Text('Close'),
             ),
           ],
         );
@@ -810,7 +806,6 @@ Widget build(BuildContext context) {
     );
   }
 
-  // Diálogo de Heart
   void showHeartDialog() {
     final systolicController = TextEditingController();
     final diastolicController = TextEditingController();
