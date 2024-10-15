@@ -76,7 +76,7 @@ My Health Tracker is a health and wellness application designed to help users tr
 - Adding social sharing to celebrate user achievements.
 - Expanding reward categories and enhancing the variety of available rewards.
 
-## Tecnologias utilizadas
+## Technologies used
 - <a href="https://dart.dev" target="_blank"> 
   <img src="https://www.vectorlogo.zone/logos/dartlang/dartlang-icon.svg" alt="dart" width="40" height="40"/></a>  Dart
 - <a href="https://flutter.dev" target="_blank"> 
