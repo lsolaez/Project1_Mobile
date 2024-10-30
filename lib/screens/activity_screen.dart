@@ -1345,6 +1345,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 }
 
+//cambios
 class Activity {
   final String title;
   final String subtitle;
