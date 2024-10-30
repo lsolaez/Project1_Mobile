@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:project1/Helpers/db_helper.dart'; // Asegúrate de tener importado DBHelper
+import 'package:project1/Helpers/db_helper.dart';
 
 class ActivityScreen extends StatefulWidget {
   final int userId;
@@ -25,33 +25,29 @@ class _ActivityScreenState extends State<ActivityScreen> {
     Activity('Yoga', 'Sports', 'assets/imagenes/Yoga.jpg'),
     Activity('Handwashing', 'Health', 'assets/imagenes/Handwashing.jpg'),
   ];
-  Map<String, List<String>> activityData =
-      {}; // Para almacenar las entradas de las actividades
+  Map<String, List<String>> activityData = {};
 
   @override
   void initState() {
     super.initState();
-    selectedDate = widget.dateSelected; // Asigna la fecha seleccionada
+    selectedDate = widget.dateSelected;
     loadActivitiesForDate();
-    loadDeletedActivities(); // Cargar actividades eliminadas
+    loadDeletedActivities();
   }
 
   @override
   void didUpdateWidget(ActivityScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Solo actualizar si la fecha seleccionada cambió
     if (oldWidget.dateSelected != widget.dateSelected) {
       setState(() {
         selectedDate = widget.dateSelected;
-        loadActivitiesForDate(); // Cargar actividades para la nueva fecha
+        loadActivitiesForDate();
       });
     }
   }
 
-  // Cargar las actividades activas
   Future<void> loadActivitiesForDate() async {
-    // Limpiar los datos antes de cargar nuevas actividades
     setState(() {
       activityData = {
         'Medications': [],
@@ -63,7 +59,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
       };
     });
 
-    // Ahora cargar las actividades de la base de datos para la fecha seleccionada
     List<Map<String, dynamic>> result =
         await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
 
@@ -71,7 +66,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
       Map<String, List<String>> mutableActivityData =
           Map<String, List<String>>.from(activityData);
 
-      // Limpiar la lista de actividades antes de cargar nuevas
       activities.clear();
 
       activities = result.map((activityData) {
@@ -86,7 +80,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
           return Activity(
             activityTitle,
-            'Health', // Puedes manejar el subtítulo como desees
+            'Health',
             'assets/imagenes/$activityTitle.jpg',
           );
         } else {
@@ -101,11 +95,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
       activityData = mutableActivityData;
     });
 
-    // Asegúrate de que las actividades eliminadas estén actualizadas
     loadDeletedActivities();
   }
 
-  // Cargar las actividades eliminadas (More Activities)
   Future<void> loadDeletedActivities() async {
     List<String> allActivityTitles = [
       'Medications',
@@ -119,10 +111,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         activities.map((activity) => activity.title).toList();
 
     setState(() {
-      // Limpiar la lista de actividades eliminadas antes de cargar nuevas
       deletedActivities.clear();
 
-      // Filtrar actividades que no estén activas
       deletedActivities = allActivityTitles
           .where((title) => !activeActivityTitles.contains(title))
           .map((title) =>
@@ -132,17 +122,105 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   Future<void> saveActivity(Activity activity, String data) async {
-    // Guardar actividad en la base de datos
     await DBHelper.saveActivityForDate(
         widget.userId, activity.title, data, selectedDate);
-    loadActivitiesForDate(); // Recargar las actividades actualizadas
+    loadActivitiesForDate();
   }
 
   Future<void> deleteActivity(Activity activity) async {
-    // Eliminar actividad de la base de datos
     await DBHelper.deleteActivityForUser(
         widget.userId, activity.title, selectedDate);
-    loadActivitiesForDate(); // Recargar las actividades actualizadas
+    loadActivitiesForDate();
+  }
+
+  void showAddActivityDialog() {
+    final nameController = TextEditingController();
+    final frequencyController = TextEditingController();
+    List<String> entries = [];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add New Activity'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(labelText: 'Activity Name'),
+                ),
+                TextField(
+                  controller: frequencyController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Frequency'),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(top: 16.0),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Entries:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      ...entries.map((entry) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(entry),
+                            IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                setState(() {
+                                  entries.remove(entry);
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                final name = nameController.text;
+                final frequency = frequencyController.text;
+                if (name.isNotEmpty && frequency.isNotEmpty) {
+                  setState(() {
+                    String entry = '$name: $frequency times';
+                    entries.add(entry);
+                  });
+
+                  saveActivity(
+                    Activity(name, 'Health', 'assets/imagenes/$name.jpg'),
+                    entries.join(';'),
+                  );
+                }
+                Navigator.of(context).pop();
+              },
+              child: Text('Add'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -164,11 +242,22 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 padding: const EdgeInsets.all(8.0),
                 children: [
                   const Divider(),
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      'Available Activities',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Available Activities',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.add),
+                          onPressed: () {
+                            showAddActivityDialog();
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   ...activities.map((activity) {
@@ -313,6 +402,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   // Implementación de los diálogos para cada actividad (Sleep, Yoga, etc.)
+  bool sleepCompleted = false;
 
   void showSleepDialog() {
     final hoursController = TextEditingController();
@@ -323,21 +413,23 @@ class _ActivityScreenState extends State<ActivityScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add Sleep Data'),
+          title: Text(sleepCompleted ? 'Activity Completed' : 'Add Sleep Data'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: hoursController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Hours'),
-                ),
-                TextField(
-                  controller: minutesController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Minutes'),
-                ),
+                if (!sleepCompleted) ...[
+                  TextField(
+                    controller: hoursController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Hours'),
+                  ),
+                  TextField(
+                    controller: minutesController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Minutes'),
+                  ),
+                ],
                 Container(
                   margin: const EdgeInsets.only(top: 16.0),
                   padding: const EdgeInsets.all(8.0),
@@ -347,179 +439,266 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Text('Sleep Entries:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Sleep Entries:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       ...sleepEntries.map((entry) {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(entry),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  sleepEntries.remove(entry);
-                                  activityData['Sleep'] = sleepEntries;
-                                });
-                              },
-                            ),
+                            if (!sleepCompleted)
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () {
+                                  setState(() {
+                                    sleepEntries.remove(entry);
+                                    activityData['Sleep'] = sleepEntries;
+                                  });
+                                },
+                              ),
                           ],
                         );
                       }).toList(),
                     ],
                   ),
                 ),
+                if (sleepCompleted)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Text(
+                      'This activity has already been completed.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 16),
+                    ),
+                  ),
               ],
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                final hours = hoursController.text;
-                final minutes = minutesController.text;
-                if (hours.isNotEmpty || minutes.isNotEmpty) {
-                  setState(() {
-                    String entry =
-                        '${hours.isNotEmpty ? hours + "h" : ""} ${minutes.isNotEmpty ? minutes + "m" : ""}';
-                    sleepEntries.add(entry);
-                    activityData['Sleep'] = sleepEntries;
-                  });
+            if (!sleepCompleted)
+              TextButton(
+                onPressed: () {
+                  final hours = hoursController.text;
+                  final minutes = minutesController.text;
+                  if (hours.isNotEmpty || minutes.isNotEmpty) {
+                    setState(() {
+                      String entry =
+                          '${hours.isNotEmpty ? hours + "h" : ""} ${minutes.isNotEmpty ? minutes + "m" : ""}';
+                      sleepEntries.add(entry);
+                      activityData['Sleep'] = sleepEntries;
+                    });
 
-                  // Guardar los datos reales en la base de datos
-                  String dataToSave = sleepEntries.join(';');
-                  saveActivity(
-                      Activity('Sleep', 'Health', 'assets/imagenes/Sleep.jpg'),
-                      dataToSave);
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Add'),
-            ),
+                    // Save the data in the database
+                    String dataToSave = sleepEntries.join(';');
+                    saveActivity(
+                        Activity(
+                            'Sleep', 'Health', 'assets/imagenes/Sleep.jpg'),
+                        dataToSave);
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: Text('Add'),
+              ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
               child: Text('Close'),
             ),
+            if (!sleepCompleted)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    sleepCompleted = true; // Mark the activity as completed
+                  });
+                  Navigator.of(context).pop();
+
+                  // Show a message indicating the activity is completed
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Activity Completed'),
+                        content: Text(
+                            'The sleep activity has been marked as completed.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text('OK'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                child: Text('Completed'),
+              ),
           ],
         );
       },
     );
   }
 
+  bool yogaCompleted =
+      false; // Variable para controlar si la actividad está completada
+
   void showYogaDialog() {
     final hoursController = TextEditingController();
     final minutesController = TextEditingController();
-    String selectedTimeOfDay = 'Morning';
+    String selectedTime = 'Morning'; // Tiempo por defecto
     List<String> yogaEntries = activityData['Yoga'] ?? [];
 
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return AlertDialog(
-              title: Text('Add Yoga Data'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButton<String>(
-                      value: selectedTimeOfDay,
-                      items: ['Morning', 'Afternoon', 'Evening']
-                          .map((String time) {
-                        return DropdownMenuItem<String>(
-                          value: time,
-                          child: Text(time),
+        return AlertDialog(
+          title: Text(yogaCompleted ? 'Activity Completed' : 'Add Yoga Data'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!yogaCompleted) ...[
+                  TextField(
+                    controller: hoursController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Hours'),
+                  ),
+                  TextField(
+                    controller: minutesController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Minutes'),
+                  ),
+                  DropdownButton<String>(
+                    value: selectedTime,
+                    items: <String>['Morning', 'Afternoon', 'Evening']
+                        .map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        selectedTime = newValue!;
+                      });
+                    },
+                  ),
+                ],
+                Container(
+                  margin: const EdgeInsets.only(top: 16.0),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Yoga Entries:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      ...yogaEntries.map((entry) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(entry),
+                            if (!yogaCompleted)
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () {
+                                  setState(() {
+                                    yogaEntries.remove(entry);
+                                    activityData['Yoga'] = yogaEntries;
+                                  });
+                                },
+                              ),
+                          ],
                         );
                       }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedTimeOfDay = newValue!;
-                        });
-                      },
-                    ),
-                    TextField(
-                      controller: hoursController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'Hours'),
-                    ),
-                    TextField(
-                      controller: minutesController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'Minutes'),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(top: 16.0),
-                      padding: const EdgeInsets.all(8.0),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text('Yoga Entries:',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          ...yogaEntries.map((entry) {
-                            return Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(entry),
-                                IconButton(
-                                  icon: Icon(Icons.delete),
-                                  onPressed: () {
-                                    setState(() {
-                                      yogaEntries.remove(entry);
-                                      activityData['Yoga'] = yogaEntries;
-                                    });
-                                  },
-                                ),
-                              ],
-                            );
-                          }).toList(),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    final hours = hoursController.text;
-                    final minutes = minutesController.text;
-                    if (hours.isNotEmpty || minutes.isNotEmpty) {
-                      setState(() {
-                        String entry =
-                            '$selectedTimeOfDay: ${hours.isNotEmpty ? hours + "h" : ""} ${minutes.isNotEmpty ? minutes + "m" : ""}';
-                        yogaEntries.add(entry);
-                        activityData['Yoga'] = yogaEntries;
-                      });
+                // Mensaje de actividad completada, debajo de las entradas de yoga
+                if (yogaCompleted)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Text(
+                      'This activity has already been completed.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 16),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            if (!yogaCompleted) // Botón para agregar datos solo si no está completado
+              TextButton(
+                onPressed: () {
+                  final hours = hoursController.text;
+                  final minutes = minutesController.text;
+                  if (hours.isNotEmpty || minutes.isNotEmpty) {
+                    setState(() {
+                      // Formato de entrada: "morning: 1h 12m"
+                      String entry =
+                          '$selectedTime: ${hours.isNotEmpty ? hours + "h" : "0h"} ${minutes.isNotEmpty ? minutes + "m" : "0m"}';
+                      yogaEntries.add(entry);
+                      activityData['Yoga'] = yogaEntries;
 
-                      // Guardar los datos reales en la base de datos
+                      // Guardar los datos en la base de datos
                       String dataToSave = yogaEntries.join(';');
                       saveActivity(
-                          Activity(
-                              'Yoga', 'Health', 'assets/imagenes/Yoga.jpg'),
-                          dataToSave);
-                    }
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Add'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Close'),
-                ),
-              ],
-            );
-          },
+                        Activity('Yoga', 'Health', 'assets/imagenes/Yoga.jpg'),
+                        dataToSave,
+                      );
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: Text('Add'),
+              ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+            if (!yogaCompleted) // Botón para marcar la actividad como completada
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    yogaCompleted = true; // Marcar la actividad como completada
+                  });
+                  Navigator.of(context).pop();
+
+                  // Mostrar un mensaje indicando que la actividad está completada
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Activity Completed'),
+                        content: Text(
+                            'The yoga activity has been marked as completed.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text('OK'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                child: Text('Completed'),
+              ),
+          ],
         );
       },
     );
   }
+
+  bool runningCompleted =
+      false; // Variable para controlar si la actividad está completada
 
   void showRunningDialog() {
     final distanceController = TextEditingController();
@@ -530,21 +709,25 @@ class _ActivityScreenState extends State<ActivityScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add Running Data'),
+          title: Text(
+              runningCompleted ? 'Activity Completed' : 'Add Running Data'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: distanceController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Distance (km)'),
-                ),
-                TextField(
-                  controller: hoursController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Time (hours)'),
-                ),
+                if (!runningCompleted) ...[
+                  // Mostrar campos solo si no está completada
+                  TextField(
+                    controller: distanceController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Distance (km)'),
+                  ),
+                  TextField(
+                    controller: hoursController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Time (hours)'),
+                  ),
+                ],
                 Container(
                   margin: const EdgeInsets.only(top: 16.0),
                   padding: const EdgeInsets.all(8.0),
@@ -561,59 +744,102 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(entry),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  runningEntries.remove(entry);
-                                  activityData['Running'] = runningEntries;
-                                });
-                              },
-                            ),
+                            if (!runningCompleted) // Solo mostrar botón de eliminar si no está completada
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () {
+                                  setState(() {
+                                    runningEntries.remove(entry);
+                                    activityData['Running'] = runningEntries;
+                                  });
+                                },
+                              ),
                           ],
                         );
                       }).toList(),
                     ],
                   ),
                 ),
+                // Mensaje de actividad completada
+                if (runningCompleted)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Text(
+                      'This activity has already been completed.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 16),
+                    ),
+                  ),
               ],
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                final distance = distanceController.text;
-                final hours = hoursController.text;
-                if (distance.isNotEmpty || hours.isNotEmpty) {
-                  setState(() {
-                    String entry =
-                        '${distance.isNotEmpty ? distance + "km" : ""} ${hours.isNotEmpty ? hours + "h" : ""}';
-                    runningEntries.add(entry);
-                    activityData['Running'] = runningEntries;
-                  });
+            if (!runningCompleted) // Botón para agregar datos solo si no está completada
+              TextButton(
+                onPressed: () {
+                  final distance = distanceController.text;
+                  final hours = hoursController.text;
+                  if (distance.isNotEmpty || hours.isNotEmpty) {
+                    setState(() {
+                      String entry =
+                          '${distance.isNotEmpty ? distance + "km" : ""} ${hours.isNotEmpty ? hours + "h" : ""}';
+                      runningEntries.add(entry);
+                      activityData['Running'] = runningEntries;
 
-                  // Guardar los datos reales en la base de datos
-                  String dataToSave = runningEntries.join(';');
-                  saveActivity(
-                      Activity(
-                          'Running', 'Health', 'assets/imagenes/Running.jpg'),
-                      dataToSave);
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Add'),
-            ),
+                      // Guardar los datos en la base de datos
+                      String dataToSave = runningEntries.join(';');
+                      saveActivity(
+                          Activity('Running', 'Health',
+                              'assets/imagenes/Running.jpg'),
+                          dataToSave);
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: Text('Add'),
+              ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
               child: Text('Close'),
             ),
+            if (!runningCompleted) // Botón para marcar la actividad como completada
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    runningCompleted =
+                        true; // Marcar la actividad como completada
+                  });
+                  Navigator.of(context).pop();
+
+                  // Mostrar un mensaje indicando que la actividad está completada
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Activity Completed'),
+                        content: Text(
+                            'The running activity has been marked as completed.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text('OK'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                child: Text('Completed'),
+              ),
           ],
         );
       },
     );
   }
+
+  bool handwashingCompleted =
+      false; // Variable para controlar si la actividad está completada
 
   void showHandwashingDialog() {
     final secondsController = TextEditingController();
@@ -623,16 +849,21 @@ class _ActivityScreenState extends State<ActivityScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add Handwashing Data'),
+          title: Text(handwashingCompleted
+              ? 'Activity Completed'
+              : 'Add Handwashing Data'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: secondsController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Seconds'),
-                ),
+                if (!handwashingCompleted) ...[
+                  // Mostrar campos solo si no está completada
+                  TextField(
+                    controller: secondsController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Seconds'),
+                  ),
+                ],
                 Container(
                   margin: const EdgeInsets.only(top: 16.0),
                   padding: const EdgeInsets.all(8.0),
@@ -649,195 +880,295 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(entry),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  handwashingEntries.remove(entry);
-                                  activityData['Handwashing'] =
-                                      handwashingEntries;
-                                });
-                              },
-                            ),
+                            if (!handwashingCompleted) // Solo mostrar botón de eliminar si no está completada
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () {
+                                  setState(() {
+                                    handwashingEntries.remove(entry);
+                                    activityData['Handwashing'] =
+                                        handwashingEntries;
+                                  });
+                                },
+                              ),
                           ],
                         );
                       }).toList(),
                     ],
                   ),
                 ),
+                // Mensaje de actividad completada
+                if (handwashingCompleted)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Text(
+                      'This activity has already been completed.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 16),
+                    ),
+                  ),
               ],
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                final seconds = secondsController.text;
-                if (seconds.isNotEmpty) {
-                  setState(() {
-                    String entry = '${seconds}s';
-                    handwashingEntries.add(entry);
-                    activityData['Handwashing'] = handwashingEntries;
-                  });
+            if (!handwashingCompleted) // Botón para agregar datos solo si no está completada
+              TextButton(
+                onPressed: () {
+                  final seconds = secondsController.text;
+                  if (seconds.isNotEmpty) {
+                    setState(() {
+                      String entry = '${seconds}s';
+                      handwashingEntries.add(entry);
+                      activityData['Handwashing'] = handwashingEntries;
 
-                  // Guardar los datos reales en la base de datos
-                  String dataToSave = handwashingEntries.join(';');
-                  saveActivity(
-                      Activity('Handwashing', 'Health',
-                          'assets/imagenes/Handwashing.jpg'),
-                      dataToSave);
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Add'),
-            ),
+                      // Guardar los datos en la base de datos
+                      String dataToSave = handwashingEntries.join(';');
+                      saveActivity(
+                          Activity('Handwashing', 'Health',
+                              'assets/imagenes/Handwashing.jpg'),
+                          dataToSave);
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: Text('Add'),
+              ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
               child: Text('Close'),
             ),
+            if (!handwashingCompleted) // Botón para marcar la actividad como completada
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    handwashingCompleted =
+                        true; // Marcar la actividad como completada
+                  });
+                  Navigator.of(context).pop();
+
+                  // Mostrar un mensaje indicando que la actividad está completada
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Activity Completed'),
+                        content: Text(
+                            'The handwashing activity has been marked as completed.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text('OK'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                child: Text('Completed'),
+              ),
           ],
         );
       },
     );
   }
 
-void showHeartDialog() {
-  final systolicController = TextEditingController();
-  final diastolicController = TextEditingController();
-  final timeController = TextEditingController();
-  List<String> heartEntries = List.from(activityData['Heart'] ?? []);
+  bool heartCompleted =
+      false; // Variable para controlar si la actividad está completada
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text('Add Heart Data'),
-            content: SingleChildScrollView(
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.9, // Ajusta el ancho del diálogo
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: systolicController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'Systolic (mmHg)'),
-                    ),
-                    TextField(
-                      controller: diastolicController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'Diastolic (mmHg)'),
-                    ),
-                    TextField(
-                      controller: timeController,
-                      decoration: InputDecoration(labelText: 'Time (HH:mm)'),
-                    ),
-                    const SizedBox(height: 16.0),
-                    Container(
-                      margin: const EdgeInsets.only(top: 16.0),
-                      padding: const EdgeInsets.all(8.0),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
+  void showHeartDialog() {
+    final systolicController = TextEditingController();
+    final diastolicController = TextEditingController();
+    final timeController = TextEditingController();
+    List<String> heartEntries = List.from(activityData['Heart'] ?? []);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                  heartCompleted ? 'Activity Completed' : 'Add Heart Data'),
+              content: SingleChildScrollView(
+                child: Container(
+                  width: MediaQuery.of(context).size.width *
+                      0.9, // Ajusta el ancho del diálogo
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!heartCompleted) ...[
+                        // Mostrar campos solo si no está completada
+                        TextField(
+                          controller: systolicController,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              InputDecoration(labelText: 'Systolic (mmHg)'),
+                        ),
+                        TextField(
+                          controller: diastolicController,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              InputDecoration(labelText: 'Diastolic (mmHg)'),
+                        ),
+                        TextField(
+                          controller: timeController,
+                          decoration:
+                              InputDecoration(labelText: 'Time (HH:mm)'),
+                        ),
+                        const SizedBox(height: 16.0),
+                      ],
+                      Container(
+                        margin: const EdgeInsets.only(top: 16.0),
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Heart Entries:',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            if (heartEntries.isNotEmpty)
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight: 150, // Altura máxima para la lista
+                                ),
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: heartEntries.length,
+                                  itemBuilder: (context, index) {
+                                    return SingleChildScrollView(
+                                      scrollDirection:
+                                          Axis.horizontal, // Scroll horizontal
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(heartEntries[index]),
+                                          if (!heartCompleted) // Solo mostrar botón de eliminar si no está completada
+                                            IconButton(
+                                              icon: const Icon(Icons.delete),
+                                              onPressed: () {
+                                                setState(() {
+                                                  heartEntries.removeAt(index);
+                                                  activityData['Heart'] =
+                                                      heartEntries;
+
+                                                  // Guardar los cambios en la base de datos
+                                                  String dataToSave =
+                                                      heartEntries.join(';');
+                                                  saveActivity(
+                                                    Activity('Heart', 'Health',
+                                                        'assets/imagenes/Heart.jpg'),
+                                                    dataToSave,
+                                                  );
+                                                });
+                                              },
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            else
+                              const SizedBox(), // Si no hay entradas, no mostrar nada
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Heart Entries:',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                      // Mensaje de actividad completada
+                      if (heartCompleted)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16.0),
+                          child: Text(
+                            'This activity has already been completed.',
+                            style: TextStyle(
+                                color: Colors.redAccent, fontSize: 16),
                           ),
-                          if (heartEntries.isNotEmpty)
-                            ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxHeight: 150, // Altura máxima para la lista
-                              ),
-                              child: ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: heartEntries.length,
-                                itemBuilder: (context, index) {
-                                  return SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal, // Scroll horizontal
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(heartEntries[index]),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete),
-                                          onPressed: () {
-                                            setState(() {
-                                              heartEntries.removeAt(index);
-                                              activityData['Heart'] = heartEntries;
-
-                                              // Guardar los cambios en la base de datos
-                                              String dataToSave = heartEntries.join(';');
-                                              saveActivity(
-                                                Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
-                                                dataToSave,
-                                              );
-                                            });
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                          else
-                            const SizedBox(), // Si no hay entradas, no mostrar nada
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  final systolic = systolicController.text;
-                  final diastolic = diastolicController.text;
-                  final time = timeController.text;
+              actions: [
+                if (!heartCompleted) // Botón para agregar datos solo si no está completada
+                  TextButton(
+                    onPressed: () {
+                      final systolic = systolicController.text;
+                      final diastolic = diastolicController.text;
+                      final time = timeController.text;
 
-                  if (systolic.isNotEmpty || diastolic.isNotEmpty || time.isNotEmpty) {
-                    setState(() {
-                      String entry =
-                          'Systolic: $systolic mmHg, Diastolic: $diastolic mmHg at $time';
-                      heartEntries.add(entry);
-                      activityData['Heart'] = heartEntries;
+                      if (systolic.isNotEmpty ||
+                          diastolic.isNotEmpty ||
+                          time.isNotEmpty) {
+                        setState(() {
+                          String entry =
+                              'Systolic: $systolic mmHg, Diastolic: $diastolic mmHg at $time';
+                          heartEntries.add(entry);
+                          activityData['Heart'] = heartEntries;
 
-                      // Guardar los datos reales en la base de datos
-                      String dataToSave = heartEntries.join(';');
-                      saveActivity(
-                        Activity('Heart', 'Health', 'assets/imagenes/Heart.jpg'),
-                        dataToSave,
+                          // Guardar los datos en la base de datos
+                          String dataToSave = heartEntries.join(';');
+                          saveActivity(
+                            Activity(
+                                'Heart', 'Health', 'assets/imagenes/Heart.jpg'),
+                            dataToSave,
+                          );
+                        });
+                      }
+                      Navigator.of(context).pop(); // Cerrar el diálogo
+                    },
+                    child: const Text('Add'),
+                  ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Cerrar el diálogo
+                  },
+                  child: const Text('Close'),
+                ),
+                if (!heartCompleted) // Botón para marcar la actividad como completada
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        heartCompleted =
+                            true; // Marcar la actividad como completada
+                      });
+                      Navigator.of(context).pop();
+
+                      // Mostrar un mensaje indicando que la actividad está completada
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: Text('Activity Completed'),
+                            content: Text(
+                                'The heart activity has been marked as completed.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text('OK'),
+                              ),
+                            ],
+                          );
+                        },
                       );
-                    });
-                  }
-                  Navigator.of(context).pop(); // Cerrar el diálogo
-                },
-                child: const Text('Add'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Cerrar el diálogo
-                },
-                child: const Text('Close'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
+                    },
+                    child: const Text('Completed'),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
-
-
+  bool medicationsCompleted =
+      false; // Variable para controlar si la actividad está completada
 
   void showMedicationsDialog() {
     final nameController = TextEditingController();
@@ -854,45 +1185,51 @@ void showHeartDialog() {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: Text('Add Medications Data'),
+              title: Text(medicationsCompleted
+                  ? 'Activity Completed'
+                  : 'Add Medications Data'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(labelText: 'Medication Name'),
-                    ),
-                    TextField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'Quantity'),
-                    ),
-                    DropdownButton<String>(
-                      value: selectedUnit,
-                      items:
-                          ['mg', 'g', 'ml', 'mm', 'others'].map((String unit) {
-                        return DropdownMenuItem<String>(
-                          value: unit,
-                          child: Text(unit),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedUnit = newValue!;
-                          if (selectedUnit != 'others') {
-                            customUnit = '';
-                          }
-                        });
-                      },
-                    ),
-                    if (selectedUnit == 'others')
+                    if (!medicationsCompleted) ...[
+                      // Mostrar campos solo si no está completada
                       TextField(
-                        onChanged: (value) {
-                          customUnit = value;
-                        },
-                        decoration: InputDecoration(labelText: 'Custom Unit'),
+                        controller: nameController,
+                        decoration:
+                            InputDecoration(labelText: 'Medication Name'),
                       ),
+                      TextField(
+                        controller: quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(labelText: 'Quantity'),
+                      ),
+                      DropdownButton<String>(
+                        value: selectedUnit,
+                        items: ['mg', 'g', 'ml', 'mm', 'others']
+                            .map((String unit) {
+                          return DropdownMenuItem<String>(
+                            value: unit,
+                            child: Text(unit),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            selectedUnit = newValue!;
+                            if (selectedUnit != 'others') {
+                              customUnit = '';
+                            }
+                          });
+                        },
+                      ),
+                      if (selectedUnit == 'others')
+                        TextField(
+                          onChanged: (value) {
+                            customUnit = value;
+                          },
+                          decoration: InputDecoration(labelText: 'Custom Unit'),
+                        ),
+                    ],
                     Container(
                       margin: const EdgeInsets.only(top: 16.0),
                       padding: const EdgeInsets.all(8.0),
@@ -909,55 +1246,96 @@ void showHeartDialog() {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(entry),
-                                IconButton(
-                                  icon: Icon(Icons.delete),
-                                  onPressed: () {
-                                    setState(() {
-                                      medicationsEntries.remove(entry);
-                                      activityData['Medications'] =
-                                          medicationsEntries;
-                                    });
-                                  },
-                                ),
+                                if (!medicationsCompleted) // Solo mostrar botón de eliminar si no está completada
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    onPressed: () {
+                                      setState(() {
+                                        medicationsEntries.remove(entry);
+                                        activityData['Medications'] =
+                                            medicationsEntries;
+                                      });
+                                    },
+                                  ),
                               ],
                             );
                           }).toList(),
                         ],
                       ),
                     ),
+                    // Mensaje de actividad completada
+                    if (medicationsCompleted)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: Text(
+                          'This activity has already been completed.',
+                          style:
+                              TextStyle(color: Colors.redAccent, fontSize: 16),
+                        ),
+                      ),
                   ],
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () {
-                    final name = nameController.text;
-                    final quantity = quantityController.text;
-                    if (name.isNotEmpty || quantity.isNotEmpty) {
-                      setState(() {
-                        String entry =
-                            '$name: ${quantity.isNotEmpty ? quantity + (customUnit.isNotEmpty ? customUnit : selectedUnit) : ""}';
-                        medicationsEntries.add(entry);
-                        activityData['Medications'] = medicationsEntries;
-                      });
+                if (!medicationsCompleted) // Botón para agregar datos solo si no está completada
+                  TextButton(
+                    onPressed: () {
+                      final name = nameController.text;
+                      final quantity = quantityController.text;
+                      if (name.isNotEmpty || quantity.isNotEmpty) {
+                        setState(() {
+                          String entry =
+                              '$name: ${quantity.isNotEmpty ? quantity + (customUnit.isNotEmpty ? customUnit : selectedUnit) : ""}';
+                          medicationsEntries.add(entry);
+                          activityData['Medications'] = medicationsEntries;
 
-                      // Guardar los datos reales en la base de datos
-                      String dataToSave = medicationsEntries.join(';');
-                      saveActivity(
-                          Activity('Medications', 'Health',
-                              'assets/imagenes/Medications.jpg'),
-                          dataToSave);
-                    }
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Add'),
-                ),
+                          // Guardar los datos en la base de datos
+                          String dataToSave = medicationsEntries.join(';');
+                          saveActivity(
+                              Activity('Medications', 'Health',
+                                  'assets/imagenes/Medications.jpg'),
+                              dataToSave);
+                        });
+                      }
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Add'),
+                  ),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                   child: Text('Close'),
                 ),
+                if (!medicationsCompleted) // Botón para marcar la actividad como completada
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        medicationsCompleted =
+                            true; // Marcar la actividad como completada
+                      });
+                      Navigator.of(context).pop();
+
+                      // Mostrar un mensaje indicando que la actividad está completada
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: Text('Activity Completed'),
+                            content: Text(
+                                'The medications activity has been marked as completed.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text('OK'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    child: Text('Completed'),
+                  ),
               ],
             );
           },
