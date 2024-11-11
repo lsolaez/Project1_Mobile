@@ -1,7 +1,6 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:project1/helpers/db_helper.dart';
+import 'package:project1/screens/login.dart';
 
 // ignore: must_be_immutable
 class CreateAccountScreen extends StatelessWidget {
@@ -40,7 +39,8 @@ class CreateAccountScreen extends StatelessWidget {
                         Align(
                           alignment: Alignment.topLeft,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.black),
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.black),
                             onPressed: () {
                               Navigator.pop(context);
                             },
@@ -79,71 +79,86 @@ class CreateAccountScreen extends StatelessWidget {
                             child: Column(
                               children: [
                                 TextField(
+                                  key: const Key('fullNameField'),
                                   controller: fullNameController,
                                   decoration: const InputDecoration(
                                     labelText: 'Full Name',
                                     labelStyle: TextStyle(color: Colors.black),
                                     enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                     focusedBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
                                 TextField(
+                                  key: const Key('phoneField'),
                                   controller: phoneController,
                                   decoration: const InputDecoration(
                                     labelText: 'Phone',
                                     labelStyle: TextStyle(color: Colors.black),
                                     enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                     focusedBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
                                 TextField(
+                                  key: const Key('emailField'),
                                   controller: emailController,
                                   decoration: const InputDecoration(
                                     labelText: 'Email address',
                                     labelStyle: TextStyle(color: Colors.black),
                                     enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                     focusedBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
                                 TextField(
+                                  key: const Key('passwordField'),
                                   controller: passwordController,
                                   obscureText: true,
                                   decoration: const InputDecoration(
                                     labelText: 'Password',
                                     labelStyle: TextStyle(color: Colors.black),
                                     enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                     focusedBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
                                 DropdownButtonFormField(
+                                  key: const Key('sexDropdown'),
                                   decoration: const InputDecoration(
                                     labelText: 'Sex',
                                     labelStyle: TextStyle(color: Colors.black),
                                     enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                     focusedBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                   ),
                                   items: const [
@@ -166,27 +181,32 @@ class CreateAccountScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 20),
                                 TextField(
+                                  key: const Key('ageField'),
                                   controller: ageController,
                                   decoration: const InputDecoration(
                                     labelText: 'Age',
                                     labelStyle: TextStyle(color: Colors.black),
                                     enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                     focusedBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.black),
+                                      borderSide:
+                                          BorderSide(color: Colors.black),
                                     ),
                                   ),
                                   keyboardType: TextInputType.number,
                                 ),
                                 const SizedBox(height: 20),
                                 ElevatedButton(
+                                  key: const Key("createAccountButton"),
                                   onPressed: () async {
                                     String fullName = fullNameController.text;
                                     String email = emailController.text;
                                     String phone = phoneController.text;
                                     String password = passwordController.text;
-                                    int age = int.tryParse(ageController.text) ?? 0;
+                                    int age =
+                                        int.tryParse(ageController.text) ?? 0;
 
                                     await DBHelper.registerUser(
                                       fullName,
@@ -197,7 +217,8 @@ class CreateAccountScreen extends StatelessWidget {
                                       password,
                                     );
 
-                                    Navigator.pop(context); // Regresar a la pantalla de Login
+                                    Navigator.pop(
+                                        context); // Regresar a la pantalla de Login
                                   },
                                   child: const Text(
                                     'CREATE ACCOUNT',
@@ -207,7 +228,8 @@ class CreateAccountScreen extends StatelessWidget {
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 15.0),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 15.0),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -217,9 +239,16 @@ class CreateAccountScreen extends StatelessWidget {
                                 const SizedBox(height: 10),
                                 TextButton(
                                   onPressed: () {
-                                    Navigator.pop(context);
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            LoginScreen(), // Asegúrate de importar LoginScreen
+                                      ),
+                                    );
                                   },
-                                  child: const Text('Already have an account? Login',
+                                  child: const Text(
+                                      'Already have an account? Login',
                                       style: TextStyle(color: Colors.black)),
                                 ),
                               ],

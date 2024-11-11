@@ -37,6 +37,7 @@ class _ConsumptionDialogState extends State<ConsumptionDialog> {
     return AlertDialog(
       title: Text('Update ${widget.title}'), // Mostrar el nutriente que se actualiza
       content: TextField(
+        key: Key('${widget.title}TextField'),
         controller: _inputController,
         keyboardType: TextInputType.number,
         decoration: InputDecoration(

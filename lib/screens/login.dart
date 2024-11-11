@@ -63,6 +63,7 @@ class LoginScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         TextField(
+                          key:const Key('Username'),
                           controller: emailController,
                           decoration: const InputDecoration(
                             prefixIcon: Icon(Icons.email),
@@ -71,6 +72,7 @@ class LoginScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 20),
                         TextField(
+                          key:const Key('Password'),
                           controller: passwordController,
                           obscureText: true,
                           decoration: const InputDecoration(
@@ -109,6 +111,7 @@ class LoginScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
+                          key: const Key('loginButton'),
                           onPressed: () async {
                             String email = emailController.text;
                             String password = passwordController.text;
@@ -122,9 +125,7 @@ class LoginScreen extends StatelessWidget {
                               // Extraer el primer nombre
                               String firstName = fullName.split(' ')[0];
 
-                              int userId = await DBHelper.getUserId(email); // Obtener el userId
-                              print('Valor de userId enviado a DietScreen: ${userId}');
-                              // Navegar a DietScreen pasando el primer nombre
+                              int userId = await DBHelper.getUserId(email);
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(

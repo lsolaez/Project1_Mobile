@@ -268,7 +268,6 @@ class _DietScreenState extends State<DietScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Barra de progreso fuera del AppBar
             Obx(() {
               double calorieProgress = dietController.totalCalories.value /
                   dietController.maxCalories.value;
@@ -305,7 +304,6 @@ class _DietScreenState extends State<DietScreen> {
 
             const SizedBox(height: 20),
 
-            // Disposición de las tarjetas de progreso en dos filas y dos columnas
             Table(
               children: [
                 TableRow(
@@ -318,7 +316,7 @@ class _DietScreenState extends State<DietScreen> {
                 ),
                 const TableRow(
                   children: [
-                    SizedBox(height: 20), // Espacio vertical entre filas
+                    SizedBox(height: 20),
                     SizedBox(height: 20),
                   ],
                 ),
