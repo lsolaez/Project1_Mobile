@@ -90,6 +90,7 @@ flutter:
     - assets/imagenes/S8.jpg
     - assets/imagenes/S9.jpeg
     - assets/imagenes/profile_pic.png
+    - assets/imagenes/actividad.jpg
 
     # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

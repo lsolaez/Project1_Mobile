@@ -34,7 +34,6 @@ class DBHelper {
           )
         ''');
 
-
         // Crear las tablas de progreso y metas
         await db.execute('''
           CREATE TABLE IF NOT EXISTS progress (
@@ -89,6 +88,7 @@ class DBHelper {
             title TEXT,
             date TEXT,
             data TEXT,
+            isCompleted INTEGER DEFAULT 0,
             PRIMARY KEY (userId, title, date),
             FOREIGN KEY (userId) REFERENCES users(id)
           )
@@ -123,61 +123,62 @@ class DBHelper {
     );
   }
 
-static Future<DateTime?> getUltimoDiaCreditoDieta(int userId) async {
-  final db = await database;
-  var result = await db.query(
-    'users',
-    columns: ['ultimoDiaCreditoDieta'],
-    where: 'id = ?',
-    whereArgs: [userId],
-  );
+  static Future<DateTime?> getUltimoDiaCreditoDieta(int userId) async {
+    final db = await database;
+    var result = await db.query(
+      'users',
+      columns: ['ultimoDiaCreditoDieta'],
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
 
-  if (result.isNotEmpty && result.first['ultimoDiaCreditoDieta'] != null) {
-    final ultimoDiaCreditoStr = result.first['ultimoDiaCreditoDieta']?.toString();
-    return DateTime.parse(ultimoDiaCreditoStr!); // Aseguramos que no sea nulo
+    if (result.isNotEmpty && result.first['ultimoDiaCreditoDieta'] != null) {
+      final ultimoDiaCreditoStr =
+          result.first['ultimoDiaCreditoDieta']?.toString();
+      return DateTime.parse(ultimoDiaCreditoStr!); // Aseguramos que no sea nulo
+    }
+
+    return null;
   }
 
-  return null;
-}
+  static Future<DateTime?> getUltimoDiaCreditoAgua(int userId) async {
+    final db = await database;
+    var result = await db.query(
+      'users',
+      columns: ['ultimoDiaCreditoAgua'],
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
 
-static Future<DateTime?> getUltimoDiaCreditoAgua(int userId) async {
-  final db = await database;
-  var result = await db.query(
-    'users',
-    columns: ['ultimoDiaCreditoAgua'],
-    where: 'id = ?',
-    whereArgs: [userId],
-  );
+    if (result.isNotEmpty && result.first['ultimoDiaCreditoAgua'] != null) {
+      final ultimoDiaCreditoStr =
+          result.first['ultimoDiaCreditoAgua']?.toString();
+      return DateTime.parse(ultimoDiaCreditoStr!); // Aseguramos que no sea nulo
+    }
 
-  if (result.isNotEmpty && result.first['ultimoDiaCreditoAgua'] != null) {
-    final ultimoDiaCreditoStr = result.first['ultimoDiaCreditoAgua']?.toString();
-    return DateTime.parse(ultimoDiaCreditoStr!); // Aseguramos que no sea nulo
+    return null;
   }
 
-  return null;
-}
+  static Future<void> setUltimoDiaCreditoDieta(
+      int userId, DateTime date) async {
+    final db = await database;
+    await db.update(
+      'users',
+      {'ultimoDiaCreditoDieta': DateFormat('yyyy-MM-dd').format(date)},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+  }
 
-
-static Future<void> setUltimoDiaCreditoDieta(int userId, DateTime date) async {
-  final db = await database;
-  await db.update(
-    'users',
-    {'ultimoDiaCreditoDieta': DateFormat('yyyy-MM-dd').format(date)},
-    where: 'id = ?',
-    whereArgs: [userId],
-  );
-}
-
-static Future<void> setUltimoDiaCreditoAgua(int userId, DateTime date) async {
-  final db = await database;
-  await db.update(
-    'users',
-    {'ultimoDiaCreditoAgua': DateFormat('yyyy-MM-dd').format(date)},
-    where: 'id = ?',
-    whereArgs: [userId],
-  );
-}
-
+  static Future<void> setUltimoDiaCreditoAgua(int userId, DateTime date) async {
+    final db = await database;
+    await db.update(
+      'users',
+      {'ultimoDiaCreditoAgua': DateFormat('yyyy-MM-dd').format(date)},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+  }
 
   // Método para verificar si el usuario cumplió sus metas en una fecha
   static Future<bool> cumplioMetasParaFecha(int userId, DateTime date) async {
@@ -263,33 +264,31 @@ static Future<void> setUltimoDiaCreditoAgua(int userId, DateTime date) async {
   }
 
   // Método para registrar un canje de premio
- static Future<void> redeemReward(int userId, String rewardName) async {
-  final db = await database;
+  static Future<void> redeemReward(int userId, String rewardName) async {
+    final db = await database;
 
-  // Insertar el premio reclamado en la tabla claimed_rewards
-  await db.insert(
-    'claimed_rewards',
-    {
-      'userId': userId,
-      'rewardName': rewardName,
-    },
-    conflictAlgorithm: ConflictAlgorithm.replace, // Evitar duplicados
-  );
-}
+    // Insertar el premio reclamado en la tabla claimed_rewards
+    await db.insert(
+      'claimed_rewards',
+      {
+        'userId': userId,
+        'rewardName': rewardName,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace, // Evitar duplicados
+    );
+  }
 
-static Future<bool> isRewardClaimed(int userId, String rewardName) async {
-  final db = await database;
+  static Future<bool> isRewardClaimed(int userId, String rewardName) async {
+    final db = await database;
 
-  final List<Map<String, dynamic>> result = await db.query(
-    'claimed_rewards',
-    where: 'userId = ? AND rewardName = ?',
-    whereArgs: [userId, rewardName],
-  );
+    final List<Map<String, dynamic>> result = await db.query(
+      'claimed_rewards',
+      where: 'userId = ? AND rewardName = ?',
+      whereArgs: [userId, rewardName],
+    );
 
-  return result.isNotEmpty; // Devuelve true si el premio ya fue reclamado
-}
-
-
+    return result.isNotEmpty; // Devuelve true si el premio ya fue reclamado
+  }
 
   // Método para verificar el inicio de sesión
   static Future<Map<String, dynamic>?> loginUser(
@@ -327,6 +326,32 @@ static Future<bool> isRewardClaimed(int userId, String rewardName) async {
         'assets/imagenes/${activityData['title']}.jpg',
       );
     }).toList();
+  }
+
+// Actualizar el estado de completitud de una actividad
+static Future<void> updateActivityCompletionStatus(int userId, String title, DateTime date, bool isCompleted) async {
+    final db = await database;
+    int completionStatus = isCompleted ? 1 : 0;
+
+    // Convertimos `date` a solo la parte de la fecha en el mismo formato que se guardó
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    print('Updating completion status for $title to $completionStatus on $formattedDate');
+
+    await db.update(
+      'activities',
+      {'isCompleted': completionStatus},
+      where: 'userId = ? AND title = ? AND date = ?',
+      whereArgs: [userId, title, formattedDate],
+    );
+
+    // Verifica si la actualización tuvo éxito
+    final updatedActivity = await db.query(
+      'activities',
+      where: 'userId = ? AND title = ? AND date = ?',
+      whereArgs: [userId, title, formattedDate],
+    );
+    print('Updated activity: $updatedActivity');
   }
 
   // Guardar actividad para un usuario en una fecha
@@ -603,7 +628,8 @@ static Future<bool> isRewardClaimed(int userId, String rewardName) async {
 
   // Guardar una actividad para un usuario en una fecha específica
   static Future<void> saveActivityForDate(
-      int userId, String title, String data, DateTime date) async {
+      int userId, String title, String data, DateTime date,
+      {bool isCompleted = false}) async {
     final db = await database;
     String formattedDate = DateFormat('yyyy-MM-dd').format(date);
 
@@ -614,6 +640,8 @@ static Future<bool> isRewardClaimed(int userId, String rewardName) async {
         'title': title,
         'date': formattedDate,
         'data': data,
+        'isCompleted':
+            isCompleted ? 1 : 0, // Guarda 1 si está completa, 0 si no
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );

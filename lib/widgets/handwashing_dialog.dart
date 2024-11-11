@@ -5,12 +5,14 @@ class HandwashingDialog extends StatelessWidget {
   final List<String> handwashingEntries;
   final Function(String) onAddEntry;
   final Function() onComplete;
+  final Function() onSaveCompletion; // Función para guardar el estado de completitud
 
   HandwashingDialog({
     required this.handwashingCompleted,
     required this.handwashingEntries,
     required this.onAddEntry,
     required this.onComplete,
+    required this.onSaveCompletion, // Añadido al constructor
   });
 
   @override
@@ -93,7 +95,26 @@ class HandwashingDialog extends StatelessWidget {
         ),
         if (!handwashingCompleted)
           TextButton(
-            onPressed: onComplete,
+            onPressed: () {
+              onComplete(); // Marca la actividad como completada en la UI
+              onSaveCompletion(); // Llama a la función para guardar el estado en la base de datos
+              Navigator.of(context).pop();
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text('Activity Completed'),
+                    content: Text('The handwashing activity has been marked as completed.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text('OK'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
             child: Text('Completed'),
           ),
       ],

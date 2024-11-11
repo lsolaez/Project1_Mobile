@@ -4,6 +4,8 @@ import 'package:project1/Helpers/db_helper.dart';
 import 'package:project1/widgets/handwashing_dialog.dart';
 import 'package:project1/widgets/heart_dialog.dart';
 import 'package:project1/widgets/medications_dialog.dart';
+import 'package:project1/widgets/new_activity_detail.dart';
+import 'package:project1/widgets/new_activity_dialog.dart';
 import 'package:project1/widgets/running_dialog.dart';
 import 'package:project1/widgets/sleep_Dialog.dart';
 import 'package:project1/widgets/yoga_dialog.dart';
@@ -53,56 +55,77 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
-  Future<void> loadActivitiesForDate() async {
-    setState(() {
-      activityData = {
-        'Medications': [],
-        'Sleep': [],
-        'Yoga': [],
-        'Running': [],
-        'Handwashing': [],
-        'Heart': [],
-      };
-    });
+Future<void> loadActivitiesForDate() async {
+  setState(() {
+    activityData = {
+      'Medications': [],
+      'Sleep': [],
+      'Yoga': [],
+      'Running': [],
+      'Handwashing': [],
+      'Heart': [],
+    };
+  });
 
-    List<Map<String, dynamic>> result =
-        await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
+  // Lista de actividades con imágenes específicas conocidas
+  List<String> knownImages = [
+    'Medications',
+    'Sleep',
+    'Heart',
+    'Running',
+    'Yoga',
+    'Handwashing'
+  ];
 
-    setState(() {
-      Map<String, List<String>> mutableActivityData =
-          Map<String, List<String>>.from(activityData);
+  List<Map<String, dynamic>> result =
+      await DBHelper.getActivitiesForDate(widget.userId, selectedDate);
 
-      activities.clear();
+  setState(() {
+    Map<String, List<String>> mutableActivityData =
+        Map<String, List<String>>.from(activityData);
 
-      activities = result.map((activityData) {
-        String? activityTitle = activityData['title'] as String?;
-        String? activityContent = activityData['data']?.toString();
+    activities.clear();
 
-        if (activityTitle != null && activityTitle.isNotEmpty) {
-          if (activityContent != null && activityContent.isNotEmpty) {
-            mutableActivityData[activityTitle] =
-                List<String>.from(activityContent.split(';'));
-          }
+    // Recorremos los datos y verificamos que el estado de completitud se cargue correctamente
+    activities = result.map((activityData) {
+      String? activityTitle = activityData['title'] as String?;
+      String? activityContent = activityData['data']?.toString();
+      bool isCompleted = (activityData['isCompleted'] as int? ?? 0) == 1;
 
-          return Activity(
-            activityTitle,
-            'Health',
-            'assets/imagenes/$activityTitle.jpg',
-          );
-        } else {
-          return Activity(
-            'Unknown Activity',
-            'Health',
-            'assets/imagenes/default.jpg',
-          );
+      print('Cargando actividad: $activityTitle, completada: $isCompleted');
+
+      if (activityTitle != null && activityTitle.isNotEmpty) {
+        if (activityContent != null && activityContent.isNotEmpty) {
+          mutableActivityData[activityTitle] =
+              List<String>.from(activityContent.split(';'));
         }
-      }).toList();
 
-      activityData = mutableActivityData;
-    });
+        // Verifica si la actividad tiene una imagen específica conocida
+        bool hasSpecificImage = knownImages.contains(activityTitle);
 
-    loadDeletedActivities();
-  }
+        return Activity(
+          activityTitle,
+          'Health',
+          hasSpecificImage ? 'assets/imagenes/$activityTitle.jpg' : 'assets/imagenes/actividad.jpg',
+          isCompleted: isCompleted, // Añade el estado de completitud
+        );
+      } else {
+        return Activity(
+          'Unknown Activity',
+          'Health',
+          'assets/imagenes/default.jpg',
+          isCompleted: false,
+        );
+      }
+    }).toList();
+
+    activityData = mutableActivityData;
+  });
+
+  loadDeletedActivities();
+}
+
+
 
   Future<void> loadDeletedActivities() async {
     List<String> allActivityTitles = [
@@ -127,11 +150,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
     });
   }
 
-  Future<void> saveActivity(Activity activity, String data) async {
-    await DBHelper.saveActivityForDate(
-        widget.userId, activity.title, data, selectedDate);
-    loadActivitiesForDate();
-  }
+Future<void> saveActivity(Activity activity, String data) async {
+  String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+  await DBHelper.saveActivityForDate(
+      widget.userId, activity.title, data, formattedDate as DateTime);
+  loadActivitiesForDate();
+}
 
   Future<void> deleteActivity(Activity activity) async {
     await DBHelper.deleteActivityForUser(
@@ -140,94 +164,21 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   void showAddActivityDialog() {
-    final nameController = TextEditingController();
-    final frequencyController = TextEditingController();
-    List<String> entries = [];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Add New Activity'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(labelText: 'Activity Name'),
-                ),
-                TextField(
-                  controller: frequencyController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Frequency'),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(top: 16.0),
-                  padding: const EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Entries:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      ...entries.map((entry) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(entry),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  entries.remove(entry);
-                                });
-                              },
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                final name = nameController.text;
-                final frequency = frequencyController.text;
-                if (name.isNotEmpty && frequency.isNotEmpty) {
-                  setState(() {
-                    String entry = '$name: $frequency times';
-                    entries.add(entry);
-                  });
-
-                  saveActivity(
-                    Activity(name, 'Health', 'assets/imagenes/$name.jpg'),
-                    entries.join(';'),
-                  );
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Add'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  showDialog(
+    context: context,
+    builder: (context) {
+      return NewActivityDialog(
+        userId: widget.userId,
+        selectedDate: selectedDate,
+        onActivityAdded: (activity, data) {
+          setState(() {
+            saveActivity(activity, data);
+          });
+        },
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -328,22 +279,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   Widget buildDismissibleActivity(Activity activity, bool isActive) {
   // Determina si la actividad está completada
-  bool isCompleted = false;
-
-  // Lógica para verificar si la actividad específica está completada
-  if (activity.title == 'Sleep') {
-    isCompleted = sleepCompleted;
-  } else if (activity.title == 'Yoga') {
-    isCompleted = yogaCompleted;
-  } else if (activity.title == 'Running') {
-    isCompleted = runningCompleted;
-  } else if (activity.title == 'Handwashing') {
-    isCompleted = handwashingCompleted;
-  } else if (activity.title == 'Heart') {
-    isCompleted = heartCompleted;
-  } else if (activity.title == 'Medications') {
-    isCompleted = medicationsCompleted;
-  }
+ bool isCompleted = activity.isCompleted;
 
   return Dismissible(
     key: Key(activity.title + (isActive ? 'active' : 'deleted')),
@@ -389,6 +325,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
           showHeartDialog();
         } else if (activity.title == 'Medications') {
           showMedicationsDialog();
+        } else {
+          showNewActivityDialog(activity.title);
         }
       },
       child: Container(
@@ -571,53 +509,63 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   bool handwashingCompleted =
-      false; // Variable para controlar si la actividad está completada
+      false;
 
-  void showHandwashingDialog() {
-    List<String> handwashingEntries = activityData['Handwashing'] ?? [];
-    showDialog(
-      context: context,
-      builder: (context) {
-        return HandwashingDialog(
-          handwashingCompleted: handwashingCompleted,
-          handwashingEntries: handwashingEntries,
-          onAddEntry: (entry) {
-            setState(() {
-              handwashingEntries.add(entry);
-              activityData['Handwashing'] = handwashingEntries;
-              saveActivity(
-                Activity(
-                    'Handwashing', 'Health', 'assets/imagenes/Handwashing.jpg'),
-                handwashingEntries.join(';'),
-              );
-            });
-          },
-          onComplete: () {
-            setState(() {
-              handwashingCompleted = true;
-            });
-            Navigator.of(context).pop();
-            showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: Text('Activity Completed'),
-                  content: Text(
-                      'The handwashing activity has been marked as completed.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text('OK'),
-                    ),
-                  ],
-                );
-              },
+void showHandwashingDialog() {
+  List<String> handwashingEntries = activityData['Handwashing'] ?? [];
+  showDialog(
+    context: context,
+    builder: (context) {
+      return HandwashingDialog(
+        handwashingCompleted: handwashingCompleted,
+        handwashingEntries: handwashingEntries,
+        onAddEntry: (entry) {
+          setState(() {
+            handwashingEntries.add(entry);
+            activityData['Handwashing'] = handwashingEntries;
+            saveActivity(
+              Activity('Handwashing', 'Health', 'assets/imagenes/Handwashing.jpg'),
+              handwashingEntries.join(';'),
             );
-          },
-        );
-      },
-    );
-  }
+          });
+        },
+        onComplete: () async {
+          setState(() {
+            handwashingCompleted = true;
+          });
+
+          await DBHelper.updateActivityCompletionStatus(widget.userId, 'Handwashing', selectedDate, true);
+          
+          // Forzar recarga de actividades después de la actualización
+          await loadActivitiesForDate();
+
+          Navigator.of(context).pop();
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text('Activity Completed'),
+                content: Text('The handwashing activity has been marked as completed.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+        onSaveCompletion: () {
+          // Esta función adicional no es necesaria aquí, ya que se está llamando a `DBHelper.updateActivityCompletionStatus` directamente en `onComplete`.
+        },
+      );
+    },
+  );
+}
+
+
+
 
   bool heartCompleted =
       false; // Variable para controlar si la actividad está completada
@@ -668,7 +616,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   bool medicationsCompleted =
-      false; // Variable para controlar si la actividad está completada
+      false;
 
   void showMedicationsDialog() {
     List<String> medicationsEntries = activityData['Medications'] ?? [];
@@ -715,6 +663,84 @@ class _ActivityScreenState extends State<ActivityScreen> {
       },
     );
   }
+
+bool customActivityCompleted = false; // Nueva variable para la actividad personalizada
+
+void showNewActivityDialog(String title) {
+  List<String> activityEntries = activityData[title]?.toList() ?? [];
+  bool customActivityCompleted = activities.firstWhere((activity) => activity.title == title).isCompleted;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return NewActivityDetailDialog(
+            activityCompleted: customActivityCompleted,
+            activityEntries: activityEntries,
+            onAddEntry: (entry) {
+              if (!customActivityCompleted) {
+                setState(() {
+                  activityEntries.add(entry);
+                  activityData[title] = activityEntries;
+                  saveActivity(
+                    Activity(title, 'Health', 'assets/imagenes/actividad.jpg'),
+                    activityEntries.join(';'),
+                  );
+                });
+              }
+            },
+            onDeleteEntry: (entry) {
+              if (!customActivityCompleted) {
+                setState(() {
+                  activityEntries.remove(entry);
+                  activityData[title] = activityEntries;
+                  saveActivity(
+                    Activity(title, 'Health', 'assets/imagenes/actividad.jpg'),
+                    activityEntries.join(';'),
+                  );
+                });
+              }
+            },
+            onComplete: () {
+              setState(() {
+                customActivityCompleted = true;
+              });
+              DBHelper.updateActivityCompletionStatus(widget.userId, title, selectedDate, true);
+              // Recarga las actividades después de marcar como completada
+              loadActivitiesForDate();
+              Navigator.of(context).pop();
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text('Activity Completed'),
+                    content: Text('The activity "$title" has been marked as completed.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text('OK'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+            activityTitle: title,
+          );
+        },
+      );
+    },
+  );
+}
+
+
+
+
+
+
+
+
 }
 
 //cambios
@@ -722,6 +748,8 @@ class Activity {
   final String title;
   final String subtitle;
   final String imagePath;
+  final bool isCompleted; // Nueva propiedad
 
-  Activity(this.title, this.subtitle, this.imagePath);
+  Activity(this.title, this.subtitle, this.imagePath, {this.isCompleted = false});
 }
+
